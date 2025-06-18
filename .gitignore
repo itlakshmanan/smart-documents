@@ -20,10 +20,6 @@ Thumbs.db
 # Logs
 *.log
 
-# Docker
-**/docker-compose.override.yml
-**/Dockerfile*
-
 # Kotlin/Java
 *.class
 *.jar
