@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
+import org.springframework.http.converter.HttpMessageNotReadableException
+import org.springframework.web.context.request.WebRequest
 
 @ControllerAdvice
 class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
@@ -98,30 +100,33 @@ class GlobalExceptionHandler : ResponseEntityExceptionHandler() {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse)
     }
 
-    protected override fun handleMethodArgumentNotValid(
-            ex: MethodArgumentNotValidException,
-            headers: org.springframework.http.HttpHeaders,
-            status: org.springframework.http.HttpStatusCode,
-            request: org.springframework.web.context.request.WebRequest
+    override fun handleMethodArgumentNotValid(
+        ex: MethodArgumentNotValidException,
+        headers: org.springframework.http.HttpHeaders,
+        status: org.springframework.http.HttpStatusCode,
+        request: org.springframework.web.context.request.WebRequest
     ): ResponseEntity<Any> {
-        val errors =
-                ex.bindingResult
-                        .fieldErrors
-                        .map { error: FieldError -> "${error.field}: ${error.defaultMessage}" }
-                        .joinToString(", ")
+        val errors = ex.bindingResult.fieldErrors.map {
+            "${it.field}: ${it.defaultMessage}"
+        }
+        val errorResponse = ErrorResponse(
+            status = status.value(),
+            message = "Validation failed",
+            details = errors
+        )
+        return ResponseEntity(errorResponse, HttpStatus.BAD_REQUEST)
+    }
 
-        val errorResponse =
-                ErrorResponse(
-                        status = status.value(),
-                        error = "Validation Error",
-                        message = errors,
-                        path =
-                                (request as?
-                                                org.springframework.web.context.request.ServletWebRequest)
-                                        ?.request
-                                        ?.requestURI
-                                        ?: ""
-                )
-        return ResponseEntity.status(status.value()).body(errorResponse)
+    override fun handleHttpMessageNotReadable(
+        ex: HttpMessageNotReadableException,
+        headers: org.springframework.http.HttpHeaders,
+        status: org.springframework.http.HttpStatusCode,
+        request: org.springframework.web.context.request.WebRequest
+    ): ResponseEntity<Any> {
+        val errorResponse = ErrorResponse(
+            status = status.value(),
+            message = "Required fields are missing or invalid."
+        )
+        return ResponseEntity(errorResponse, HttpStatus.BAD_REQUEST)
     }
 }
