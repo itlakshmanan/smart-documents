@@ -15,7 +15,7 @@ import org.springframework.data.web.SortDefault
 import org.springframework.data.domain.Sort
 
 @RestController
-@RequestMapping("/api/books")
+@RequestMapping("/api/v1/books")
 class BookController(
     private val bookService: BookService,
     private val bookMapper: BookMapper
