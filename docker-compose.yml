@@ -30,6 +30,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/books?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: book_user
       SPRING_DATASOURCE_PASSWORD: book_password
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
     networks:
       - smart-documents-network
     command: gradle bootRun
@@ -48,6 +50,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/orders?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: order_user
       SPRING_DATASOURCE_PASSWORD: order_password
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
     networks:
       - smart-documents-network
     command: gradle bootRun
