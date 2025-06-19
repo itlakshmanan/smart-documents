@@ -38,5 +38,18 @@ data class BookRequestDto(
     val quantity: Int,
 
     @field:Size(max = 1000, message = "Description must be at most 1000 characters")
-    val description: String? = null
+    val description: String? = null,
+
+    @field:NotBlank(message = "Language must not be blank")
+    val language: String,
+
+    @field:NotBlank(message = "Publisher must not be blank")
+    val publisher: String,
+
+    @field:NotBlank(message = "Published date must not be blank")
+    @field:Pattern(
+        regexp = "^\\d{4}-\\d{2}-\\d{2}$",
+        message = "Published date must be in yyyy-MM-dd format"
+    )
+    val publishedDate: String
 )

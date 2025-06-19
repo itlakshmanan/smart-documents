@@ -13,5 +13,8 @@ data class BookResponseDto(
     val genre: String,
     val price: BigDecimal,
     val quantity: Int,
-    val description: String? = null
+    val description: String? = null,
+    val language: String,
+    val publisher: String,
+    val publishedDate: String
 )

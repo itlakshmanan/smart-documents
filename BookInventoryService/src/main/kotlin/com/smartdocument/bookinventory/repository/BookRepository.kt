@@ -4,16 +4,16 @@ import com.smartdocument.bookinventory.model.Book
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
+import org.springframework.data.jpa.domain.Specification
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 
 @Repository
 interface BookRepository : JpaRepository<Book, Long> {
-    fun findByIsbn(isbn: String): Book?
-    
-    @Query("SELECT b FROM Book b WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(b.author) LIKE LOWER(CONCAT('%', :query, '%'))")
-    fun searchBooks(query: String): List<Book>
-    
-    fun findByGenre(genre: String): List<Book>
-    
     @Query("SELECT DISTINCT b.genre FROM Book b")
     fun findAllGenres(): List<String>
-} 
+
+    fun findAll(spec: Specification<Book>?, pageable: Pageable): Page<Book>
+
+    fun findByIsbn(isbn: String): Book?
+}

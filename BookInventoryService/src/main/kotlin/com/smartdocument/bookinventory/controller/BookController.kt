@@ -8,6 +8,11 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import jakarta.validation.Valid
 import com.smartdocument.bookinventory.mapper.BookMapper
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
+import org.springframework.data.web.SortDefault
+import org.springframework.data.domain.Sort
 
 @RestController
 @RequestMapping("/api/books")
@@ -23,18 +28,6 @@ class BookController(
     @GetMapping("/{id}")
     fun getBookById(@PathVariable id: Long): ResponseEntity<BookResponseDto> =
         ResponseEntity.ok(bookMapper.toResponseDto(bookService.getBookById(id)))
-
-    @GetMapping("/isbn/{isbn}")
-    fun getBookByIsbn(@PathVariable isbn: String): ResponseEntity<BookResponseDto> =
-        ResponseEntity.ok(bookMapper.toResponseDto(bookService.getBookByIsbn(isbn)))
-
-    @GetMapping("/search")
-    fun searchBooks(@RequestParam query: String): ResponseEntity<List<BookResponseDto>> =
-        ResponseEntity.ok(bookService.searchBooks(query).map { bookMapper.toResponseDto(it) })
-
-    @GetMapping("/genre/{genre}")
-    fun getBooksByGenre(@PathVariable genre: String): ResponseEntity<List<BookResponseDto>> =
-        ResponseEntity.ok(bookService.getBooksByGenre(genre).map { bookMapper.toResponseDto(it) })
 
     @GetMapping("/genres")
     fun getAllGenres(): ResponseEntity<List<String>> =
@@ -59,4 +52,20 @@ class BookController(
         bookService.deleteBook(id)
         return ResponseEntity.noContent().build()
     }
+
+    @GetMapping("/advanced-search")
+    fun searchBooksAdvanced(
+        @RequestParam(required = false) title: String?,
+        @RequestParam(required = false) author: String?,
+        @RequestParam(required = false) genre: String?,
+        @RequestParam(required = false) isbn: String?,
+        @RequestParam(required = false) language: String?,
+        @RequestParam(required = false) publisher: String?,
+        @RequestParam(required = false) publishedDate: String?,
+        @PageableDefault(size = 20) @SortDefault.SortDefaults(
+            SortDefault(sort = ["title"], direction = Sort.Direction.ASC)
+        ) pageable: Pageable
+    ): Page<BookResponseDto> =
+        bookService.searchBooksAdvanced(title, author, genre, isbn, language, publisher, publishedDate, pageable)
+            .map { bookMapper.toResponseDto(it) }
 }
