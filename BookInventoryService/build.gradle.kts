@@ -9,23 +9,22 @@ plugins {
 }
 
 group = "com.smartdocument"
+
 version = "0.0.1-SNAPSHOT"
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-}
+java { sourceCompatibility = JavaVersion.VERSION_17 }
 
-repositories {
-    mavenCentral()
-}
+repositories { mavenCentral() }
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     runtimeOnly("com.mysql:mysql-connector-j")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    implementation("org.modelmapper:modelmapper:3.2.0")
 }
 
 tasks.withType<KotlinCompile> {
@@ -35,6 +34,4 @@ tasks.withType<KotlinCompile> {
     }
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
-} 
+tasks.withType<Test> { useJUnitPlatform() }
