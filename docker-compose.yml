@@ -19,9 +19,9 @@ services:
   book-inventory-service:
     container_name: book-inventory-service
     image: gradle:7.6.1-jdk17
-    working_dir: /app
+    working_dir: /book-app
     volumes:
-      - ./BookInventoryService:/app
+      - ./BookInventoryService:/book-app
     ports:
       - "8081:8081"
     depends_on:
@@ -37,9 +37,9 @@ services:
   order-management-service:
     container_name: order-management-service
     image: gradle:7.6.1-jdk17
-    working_dir: /app
+    working_dir: /order-app
     volumes:
-      - ./BookInventoryService:/app
+      - ./OrderManagementService:/order-app
     ports:
       - "8082:8082"
     depends_on:

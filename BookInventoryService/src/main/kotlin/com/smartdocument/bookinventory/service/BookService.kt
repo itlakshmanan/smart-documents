@@ -1,5 +1,6 @@
 package com.smartdocument.bookinventory.service
 
+import com.smartdocument.bookinventory.exception.BookInventoryServiceException
 import com.smartdocument.bookinventory.model.Book
 import com.smartdocument.bookinventory.repository.BookRepository
 import org.springframework.stereotype.Service
@@ -26,7 +27,7 @@ class BookService(private val bookRepository: BookRepository) {
     @Transactional
     fun createBook(book: Book): Book {
         if (bookRepository.findByIsbn(book.isbn) != null) {
-            throw IllegalArgumentException("Book with ISBN ${book.isbn} already exists")
+            throw BookInventoryServiceException(BookInventoryServiceException.Operation.ISBN_ALREADY_EXISTS)
         }
         return bookRepository.save(book)
     }
@@ -60,4 +61,4 @@ class BookService(private val bookRepository: BookRepository) {
         }
         bookRepository.deleteById(id)
     }
-} 
+}
