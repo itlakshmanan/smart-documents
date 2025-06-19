@@ -8,7 +8,7 @@ import java.math.BigDecimal
 data class Book(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    var id: Long = 0,
 
     @Column(nullable = false)
     var title: String,
@@ -30,4 +30,4 @@ data class Book(
 
     @Column(length = 1000)
     var description: String? = null
-) 
+)
