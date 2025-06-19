@@ -30,6 +30,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/books?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: book_user
       SPRING_DATASOURCE_PASSWORD: book_password
+      SECURITY_USER_NAME: bookadmin
+      SECURITY_USER_PASSWORD: bookpass123
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics
       MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
     networks:
