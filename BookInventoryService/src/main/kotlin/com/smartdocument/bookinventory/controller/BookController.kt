@@ -2,54 +2,58 @@ package com.smartdocument.bookinventory.controller
 
 import com.smartdocument.bookinventory.model.Book
 import com.smartdocument.bookinventory.service.BookService
+import com.smartdocument.bookinventory.dto.BookRequestDto
+import com.smartdocument.bookinventory.dto.BookResponseDto
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import jakarta.validation.Valid
+import com.smartdocument.bookinventory.service.BookMapper
 
 @RestController
 @RequestMapping("/api/books")
 class BookController(private val bookService: BookService) {
 
     @GetMapping
-    fun getAllBooks(): ResponseEntity<List<Book>> = 
-        ResponseEntity.ok(bookService.getAllBooks())
+    fun getAllBooks(): ResponseEntity<List<BookResponseDto>> =
+        ResponseEntity.ok(bookService.getAllBooks().map { BookMapper.toResponseDto(it) })
 
     @GetMapping("/{id}")
-    fun getBookById(@PathVariable id: Long): ResponseEntity<Book> =
-        ResponseEntity.ok(bookService.getBookById(id))
+    fun getBookById(@PathVariable id: Long): ResponseEntity<BookResponseDto> =
+        ResponseEntity.ok(BookMapper.toResponseDto(bookService.getBookById(id)))
 
     @GetMapping("/isbn/{isbn}")
-    fun getBookByIsbn(@PathVariable isbn: String): ResponseEntity<Book> =
-        ResponseEntity.ok(bookService.getBookByIsbn(isbn))
+    fun getBookByIsbn(@PathVariable isbn: String): ResponseEntity<BookResponseDto> =
+        ResponseEntity.ok(BookMapper.toResponseDto(bookService.getBookByIsbn(isbn)))
 
     @GetMapping("/search")
-    fun searchBooks(@RequestParam query: String): ResponseEntity<List<Book>> =
-        ResponseEntity.ok(bookService.searchBooks(query))
+    fun searchBooks(@RequestParam query: String): ResponseEntity<List<BookResponseDto>> =
+        ResponseEntity.ok(bookService.searchBooks(query).map { BookMapper.toResponseDto(it) })
 
     @GetMapping("/genre/{genre}")
-    fun getBooksByGenre(@PathVariable genre: String): ResponseEntity<List<Book>> =
-        ResponseEntity.ok(bookService.getBooksByGenre(genre))
+    fun getBooksByGenre(@PathVariable genre: String): ResponseEntity<List<BookResponseDto>> =
+        ResponseEntity.ok(bookService.getBooksByGenre(genre).map { BookMapper.toResponseDto(it) })
 
     @GetMapping("/genres")
     fun getAllGenres(): ResponseEntity<List<String>> =
         ResponseEntity.ok(bookService.getAllGenres())
 
     @PostMapping
-    fun createBook(@RequestBody book: Book): ResponseEntity<Book> =
-        ResponseEntity.ok(bookService.createBook(book))
+    fun createBook(@Valid @RequestBody bookRequestDto: BookRequestDto): ResponseEntity<BookResponseDto> =
+        ResponseEntity.ok(BookMapper.toResponseDto(bookService.createBook(BookMapper.toEntity(bookRequestDto))))
 
     @PutMapping("/{id}")
-    fun updateBook(@PathVariable id: Long, @RequestBody book: Book): ResponseEntity<Book> =
-        ResponseEntity.ok(bookService.updateBook(id, book))
+    fun updateBook(@PathVariable id: Long, @Valid @RequestBody bookRequestDto: BookRequestDto): ResponseEntity<BookResponseDto> =
+        ResponseEntity.ok(BookMapper.toResponseDto(bookService.updateBook(id, BookMapper.toEntity(bookRequestDto, id))))
 
     @PatchMapping("/{id}/inventory")
     fun updateInventory(
         @PathVariable id: Long,
         @RequestParam quantity: Int
-    ): ResponseEntity<Book> = ResponseEntity.ok(bookService.updateInventory(id, quantity))
+    ): ResponseEntity<BookResponseDto> = ResponseEntity.ok(BookMapper.toResponseDto(bookService.updateInventory(id, quantity)))
 
     @DeleteMapping("/{id}")
     fun deleteBook(@PathVariable id: Long): ResponseEntity<Unit> {
         bookService.deleteBook(id)
         return ResponseEntity.noContent().build()
     }
-} 
+}
