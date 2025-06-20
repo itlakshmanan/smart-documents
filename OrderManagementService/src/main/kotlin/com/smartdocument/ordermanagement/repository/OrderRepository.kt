@@ -1,6 +1,7 @@
 package com.smartdocument.ordermanagement.repository
 
 import com.smartdocument.ordermanagement.model.Order
+import com.smartdocument.ordermanagement.model.OrderStatus
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
@@ -8,4 +9,4 @@ import org.springframework.stereotype.Repository
 interface OrderRepository : JpaRepository<Order, Long> {
     fun findByCustomerId(customerId: String): List<Order>
     fun findByCustomerIdAndStatus(customerId: String, status: OrderStatus): List<Order>
-} 
+}
