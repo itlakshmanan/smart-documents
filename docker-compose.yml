@@ -6,8 +6,6 @@ services:
     container_name: smart-documents-mysql
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
     ports:
       - "3306:3306"
     volumes:
