@@ -23,6 +23,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 
+/**
+ * REST controller for managing book inventory operations.
+ * Exposes endpoints for CRUD operations, genre listing, inventory updates, and advanced search.
+ * Uses BookService for business logic and BookMapper for DTO mapping.
+ */
 @RestController
 @RequestMapping("/api/v1/books")
 @Tag(name = "Book Management", description = "APIs for managing book inventory")
@@ -32,6 +37,11 @@ class BookController(
     private val bookMapper: BookMapper
 ) {
 
+    /**
+     * Retrieves all books in the inventory.
+     *
+     * @return a list of BookResponseDto objects representing all books
+     */
     @GetMapping
     @Operation(
         summary = "Get all books",
@@ -50,6 +60,12 @@ class BookController(
     fun getAllBooks(): ResponseEntity<List<BookResponseDto>> =
         ResponseEntity.ok(bookService.getAllBooks().map { bookMapper.toResponseDto(it) })
 
+    /**
+     * Retrieves a specific book by its unique identifier.
+     *
+     * @param id the unique identifier of the book
+     * @return the BookResponseDto for the requested book
+     */
     @GetMapping("/{id}")
     @Operation(
         summary = "Get book by ID",
@@ -72,6 +88,11 @@ class BookController(
     ): ResponseEntity<BookResponseDto> =
         ResponseEntity.ok(bookMapper.toResponseDto(bookService.getBookById(id)))
 
+    /**
+     * Retrieves all unique genres from the books in the inventory.
+     *
+     * @return a list of genre names
+     */
     @GetMapping("/genres")
     @Operation(
         summary = "Get all genres",
@@ -90,6 +111,12 @@ class BookController(
     fun getAllGenres(): ResponseEntity<List<String>> =
         ResponseEntity.ok(bookService.getAllGenres())
 
+    /**
+     * Creates a new book in the inventory.
+     *
+     * @param bookRequestDto the DTO containing book information
+     * @return the created BookResponseDto
+     */
     @PostMapping
     @Operation(
         summary = "Create a new book",
@@ -138,6 +165,13 @@ class BookController(
     ): ResponseEntity<BookResponseDto> =
         ResponseEntity.ok(bookMapper.toResponseDto(bookService.createBook(bookMapper.toEntity(bookRequestDto))))
 
+    /**
+     * Updates an existing book's information.
+     *
+     * @param id the unique identifier of the book to update
+     * @param bookRequestDto the DTO containing updated book information
+     * @return the updated BookResponseDto
+     */
     @PutMapping("/{id}")
     @Operation(
         summary = "Update a book",
@@ -162,6 +196,13 @@ class BookController(
     ): ResponseEntity<BookResponseDto> =
         ResponseEntity.ok(bookMapper.toResponseDto(bookService.updateBook(id, bookMapper.toEntityWithId(bookRequestDto, id))))
 
+    /**
+     * Updates the inventory quantity for a specific book.
+     *
+     * @param id the unique identifier of the book
+     * @param quantity the new quantity to set
+     * @return the updated BookResponseDto
+     */
     @PatchMapping("/{id}/inventory")
     @Operation(
         summary = "Update book inventory",
@@ -185,6 +226,11 @@ class BookController(
         @RequestParam quantity: Int
     ): ResponseEntity<BookResponseDto> = ResponseEntity.ok(bookMapper.toResponseDto(bookService.updateInventory(id, quantity)))
 
+    /**
+     * Deletes a book from the inventory by its unique identifier.
+     *
+     * @param id the unique identifier of the book to delete
+     */
     @DeleteMapping("/{id}")
     @Operation(
         summary = "Delete a book",
@@ -205,6 +251,19 @@ class BookController(
         return ResponseEntity.noContent().build()
     }
 
+    /**
+     * Performs an advanced search for books with multiple optional filters and pagination.
+     *
+     * @param title optional title filter
+     * @param author optional author filter
+     * @param genre optional genre filter
+     * @param isbn optional ISBN filter
+     * @param language optional language filter
+     * @param publisher optional publisher filter
+     * @param publishedDate optional published date filter
+     * @param pageable pagination and sorting information
+     * @return a page of BookResponseDto objects matching the filters
+     */
     @GetMapping("/advanced-search")
     @Operation(
         summary = "Advanced book search",

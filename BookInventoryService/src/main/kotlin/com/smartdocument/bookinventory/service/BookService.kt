@@ -12,11 +12,21 @@ import org.springframework.data.domain.Pageable
 import com.smartdocument.bookinventory.mapper.BookMapper
 import org.slf4j.LoggerFactory
 
+/**
+ * Service class for managing book inventory operations.
+ * Handles business logic for CRUD operations, inventory updates, and advanced search.
+ * Uses BookRepository for persistence and supports transactional operations where needed.
+ */
 @Service
 class BookService(private val bookRepository: BookRepository) {
 
     private val logger = LoggerFactory.getLogger(BookService::class.java)
 
+    /**
+     * Retrieves all books from the inventory.
+     *
+     * @return a list of all Book entities in the database.
+     */
     fun getAllBooks(): List<Book> {
         logger.info("Fetching all books from inventory")
         val books = bookRepository.findAll()
@@ -24,6 +34,13 @@ class BookService(private val bookRepository: BookRepository) {
         return books
     }
 
+    /**
+     * Retrieves a book by its unique identifier.
+     *
+     * @param id the unique identifier of the book
+     * @return the Book entity if found
+     * @throws NoSuchElementException if the book is not found
+     */
     fun getBookById(id: Long): Book {
         logger.info("Fetching book with id: {}", id)
         return bookRepository.findById(id)
@@ -34,6 +51,11 @@ class BookService(private val bookRepository: BookRepository) {
             .also { logger.info("Successfully retrieved book: {} (id: {})", it.title, id) }
     }
 
+    /**
+     * Retrieves all unique genres from the books in the inventory.
+     *
+     * @return a list of unique genre names
+     */
     fun getAllGenres(): List<String> {
         logger.info("Fetching all available genres")
         val genres = bookRepository.findAllGenres()
@@ -41,10 +63,18 @@ class BookService(private val bookRepository: BookRepository) {
         return genres
     }
 
+    /**
+     * Creates a new book in the inventory.
+     *
+     * @param book the Book entity to create
+     * @return the created Book entity
+     * @throws BookInventoryServiceException if a book with the same ISBN already exists
+     */
     @Transactional
     fun createBook(book: Book): Book {
         logger.info("Creating new book: {} (ISBN: {})", book.title, book.isbn)
 
+        // Check for duplicate ISBN before creating the book
         if (bookRepository.findByIsbn(book.isbn) != null) {
             logger.error("Failed to create book: ISBN {} already exists", book.isbn)
             throw BookInventoryServiceException(BookInventoryServiceException.Operation.ISBN_ALREADY_EXISTS)
@@ -55,6 +85,14 @@ class BookService(private val bookRepository: BookRepository) {
         return savedBook
     }
 
+    /**
+     * Updates an existing book's information.
+     *
+     * @param id the unique identifier of the book to update
+     * @param updatedBook the Book entity with updated information
+     * @return the updated Book entity
+     * @throws NoSuchElementException if the book is not found
+     */
     @Transactional
     fun updateBook(id: Long, updatedBook: Book): Book {
         logger.info("Updating book with id: {}", id)
@@ -62,6 +100,7 @@ class BookService(private val bookRepository: BookRepository) {
         val existingBook = getBookById(id)
         logger.debug("Found existing book: {} (id: {})", existingBook.title, id)
 
+        // Preserve the original creation timestamp
         val bookToSave = updatedBook.copy(createdAt = existingBook.createdAt)
         val savedBook = bookRepository.save(bookToSave)
 
@@ -69,6 +108,14 @@ class BookService(private val bookRepository: BookRepository) {
         return savedBook
     }
 
+    /**
+     * Updates the inventory quantity for a specific book.
+     *
+     * @param id the unique identifier of the book
+     * @param quantity the new quantity to set
+     * @return the updated Book entity
+     * @throws NoSuchElementException if the book is not found
+     */
     @Transactional
     fun updateInventory(id: Long, quantity: Int): Book {
         logger.info("Updating inventory for book id: {} to quantity: {}", id, quantity)
@@ -83,10 +130,17 @@ class BookService(private val bookRepository: BookRepository) {
         return updatedBook
     }
 
+    /**
+     * Deletes a book from the inventory by its unique identifier.
+     *
+     * @param id the unique identifier of the book to delete
+     * @throws NoSuchElementException if the book is not found
+     */
     @Transactional
     fun deleteBook(id: Long) {
         logger.info("Attempting to delete book with id: {}", id)
 
+        // Check if the book exists before attempting deletion
         if (!bookRepository.existsById(id)) {
             logger.error("Failed to delete book: Book not found with id: {}", id)
             throw NoSuchElementException("Book not found with id: $id")
@@ -96,6 +150,19 @@ class BookService(private val bookRepository: BookRepository) {
         logger.info("Successfully deleted book with id: {}", id)
     }
 
+    /**
+     * Performs an advanced search for books with multiple optional filters and pagination.
+     *
+     * @param title optional title filter (partial match, case-insensitive)
+     * @param author optional author filter (partial match, case-insensitive)
+     * @param genre optional genre filter (exact match, case-insensitive)
+     * @param isbn optional ISBN filter (exact match)
+     * @param language optional language filter
+     * @param publisher optional publisher filter
+     * @param publishedDate optional published date filter
+     * @param pageable pagination and sorting information
+     * @return a page of Book entities matching the filters
+     */
     fun searchBooksAdvanced(
         title: String?,
         author: String?,
@@ -109,6 +176,7 @@ class BookService(private val bookRepository: BookRepository) {
         logger.info("Performing advanced book search with filters - title: {}, author: {}, genre: {}, isbn: {}, page: {}, size: {}",
                    title, author, genre, isbn, pageable.pageNumber, pageable.pageSize)
 
+        // Build dynamic specification based on provided filters
         val spec = Specification.where<Book>(null)
             .and(title?.let { titleLike(it) })
             .and(author?.let { authorLike(it) })
@@ -122,15 +190,19 @@ class BookService(private val bookRepository: BookRepository) {
         return result
     }
 
+    // Specification helper for case-insensitive title search
     private fun titleLike(title: String) = Specification<Book> { root, _, cb ->
         cb.like(cb.lower(root.get("title")), "%" + title.lowercase() + "%")
     }
+    // Specification helper for case-insensitive author search
     private fun authorLike(author: String) = Specification<Book> { root, _, cb ->
         cb.like(cb.lower(root.get("author")), "%" + author.lowercase() + "%")
     }
+    // Specification helper for case-insensitive genre search
     private fun genreEquals(genre: String) = Specification<Book> { root, _, cb ->
         cb.equal(cb.lower(root.get("genre")), genre.lowercase())
     }
+    // Specification helper for exact ISBN match
     private fun isbnEquals(isbn: String) = Specification<Book> { root, _, cb ->
         cb.equal(root.get<String>("isbn"), isbn)
     }
