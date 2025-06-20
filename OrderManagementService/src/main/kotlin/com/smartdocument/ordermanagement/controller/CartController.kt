@@ -9,12 +9,15 @@ import com.smartdocument.ordermanagement.dto.CartItemRequestDto
 import com.smartdocument.ordermanagement.dto.CartResponseDto
 import jakarta.validation.Valid
 import com.smartdocument.ordermanagement.mapper.CartMapper
+import com.smartdocument.ordermanagement.dto.OrderResponseDto
+import com.smartdocument.ordermanagement.mapper.OrderMapper
 
 @RestController
 @RequestMapping("/api/v1/carts")
 class CartController(
     private val cartService: CartService,
-    private val cartMapper: CartMapper
+    private val cartMapper: CartMapper,
+    private val orderMapper: OrderMapper
 ) {
 
     @GetMapping("/{customerId}")
@@ -49,4 +52,8 @@ class CartController(
     @DeleteMapping("/{customerId}")
     fun clearCart(@PathVariable customerId: String): ResponseEntity<CartResponseDto> =
         ResponseEntity.ok(cartMapper.toCartResponseDto(cartService.clearCart(customerId)))
+
+    @PostMapping("/{customerId}/checkout")
+    fun checkoutCart(@PathVariable customerId: String): ResponseEntity<OrderResponseDto> =
+        ResponseEntity.ok(orderMapper.toOrderResponseDto(cartService.checkoutCart(customerId)))
 }

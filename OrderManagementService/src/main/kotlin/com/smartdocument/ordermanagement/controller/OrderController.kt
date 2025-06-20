@@ -35,8 +35,4 @@ class OrderController(
         @PathVariable id: Long,
         @RequestParam status: OrderStatus
     ): ResponseEntity<OrderResponseDto> = ResponseEntity.ok(orderMapper.toOrderResponseDto(orderService.updateOrderStatus(id, status)))
-
-    @PostMapping("/{id}/cancel")
-    fun cancelOrder(@PathVariable id: Long): ResponseEntity<OrderResponseDto> =
-        ResponseEntity.ok(orderMapper.toOrderResponseDto(orderService.cancelOrder(id)))
 }

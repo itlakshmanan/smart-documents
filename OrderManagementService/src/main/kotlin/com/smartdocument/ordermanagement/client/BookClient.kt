@@ -32,4 +32,16 @@ class BookClient(
                 }
             }
             .block()
+
+    fun updateBookQuantity(bookId: Long, newQuantity: Int): Boolean =
+        webClient.patch()
+            .uri("/api/v1/books/{id}/inventory?quantity={quantity}", bookId, newQuantity)
+            .exchangeToMono { response ->
+                if (response.statusCode().is2xxSuccessful) {
+                    Mono.just(true)
+                } else {
+                    Mono.just(false)
+                }
+            }
+            .block() ?: false
 }
