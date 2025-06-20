@@ -10,13 +10,13 @@ import java.math.BigDecimal
  */
 data class CartItemRequestDto(
     @field:NotNull(message = "Book ID must not be null")
-    val bookId: Long?,
+    val bookId: Long,
 
     @field:NotNull(message = "Quantity must not be null")
     @field:Min(1, message = "Quantity must be at least 1")
-    val quantity: Int?,
+    val quantity: Int,
 
     @field:NotNull(message = "Price must not be null")
     @field:Positive(message = "Price must be positive")
-    val price: BigDecimal?
+    val price: BigDecimal
 )

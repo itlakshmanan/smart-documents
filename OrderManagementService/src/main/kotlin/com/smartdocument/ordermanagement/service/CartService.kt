@@ -29,17 +29,18 @@ class CartService(
     @Transactional
     fun addItemToCart(customerId: String, request: CartItemRequestDto): Cart {
         validateCartItemRequest(request)
-        val book = bookClient.getBookById(request.bookId!!)
+        val book = bookClient.getBookById(request.bookId)
             ?: throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_ITEM)
-        if (request.quantity!! > book.quantity) {
-            throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_QUANTITY)
+        if (request.quantity > book.quantity) {
+            throw OrderManagementServiceException(OrderManagementServiceException.Operation.INSUFFICIENT_STOCK)
         }
+
         val cart = getCartByCustomerId(customerId)
         val existingItem = cart.cartItems.find { it.bookId == request.bookId }
         if (existingItem != null) {
             existingItem.quantity += request.quantity
             if (existingItem.quantity > book.quantity) {
-                throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_QUANTITY)
+                throw OrderManagementServiceException(OrderManagementServiceException.Operation.INSUFFICIENT_STOCK)
             }
             existingItem.subtotal = existingItem.price.multiply(BigDecimal(existingItem.quantity))
         } else {
@@ -62,7 +63,7 @@ class CartService(
         val book = bookClient.getBookById(bookId)
             ?: throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_ITEM)
         if (quantity > book.quantity) {
-            throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_QUANTITY)
+            throw OrderManagementServiceException(OrderManagementServiceException.Operation.INSUFFICIENT_STOCK)
         }
         val cart = getCartByCustomerId(customerId)
         val item = cart.cartItems.find { it.bookId == bookId }
@@ -92,19 +93,6 @@ class CartService(
     private fun updateCartTotal(cart: Cart) {
         cart.totalAmount = cart.cartItems.sumOf { it.subtotal }
     }
-
-    fun toCartResponseDto(cart: Cart): CartResponseDto = CartResponseDto(
-        customerId = cart.customerId,
-        totalAmount = cart.totalAmount,
-        items = cart.cartItems.map { toCartItemResponseDto(it) }
-    )
-
-    fun toCartItemResponseDto(item: CartItem): CartItemResponseDto = CartItemResponseDto(
-        bookId = item.bookId,
-        quantity = item.quantity,
-        price = item.price,
-        subtotal = item.subtotal
-    )
 
     private fun validateCartItemRequest(request: CartItemRequestDto) {
         if (request.bookId == null) throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_ITEM)

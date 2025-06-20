@@ -7,11 +7,10 @@ import com.smartdocument.ordermanagement.dto.OrderResponseDto
 import com.smartdocument.ordermanagement.mapper.OrderMapper
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import org.springframework.beans.factory.annotation.Autowired
 
 @RestController
 @RequestMapping("/api/v1/orders")
-class OrderController @Autowired constructor(
+class OrderController(
     private val orderService: OrderService,
     private val orderMapper: OrderMapper
 ) {
