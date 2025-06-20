@@ -29,7 +29,7 @@ class OrderService(
         order.orderItems.forEach { item ->
             val book = bookClient.getBookById(item.bookId)
                 ?: throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_ITEM)
-            if (item.quantity > book.quantity) {
+            if (item.quantity < 1 || item.quantity > book.quantity) {
                 throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_QUANTITY)
             }
         }
