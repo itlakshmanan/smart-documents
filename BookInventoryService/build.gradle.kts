@@ -38,6 +38,8 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
     testRuntimeOnly("com.h2database:h2")
+    testImplementation("io.rest-assured:rest-assured:5.4.0")
+    testImplementation("io.rest-assured:json-path:5.4.0")
 }
 
 tasks.withType<KotlinCompile> {
