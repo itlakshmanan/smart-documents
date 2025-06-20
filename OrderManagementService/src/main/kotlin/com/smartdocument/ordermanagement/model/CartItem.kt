@@ -25,4 +25,16 @@ data class CartItem(
 
     @Column(nullable = false)
     var subtotal: BigDecimal
-) 
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+        other as CartItem
+        if (id != 0L && id == other.id) return true
+        return bookId == other.bookId && cart.id == other.cart.id
+    }
+
+    override fun hashCode(): Int {
+        return if (id != 0L) id.hashCode() else 31 * bookId.hashCode() + cart.id.hashCode()
+    }
+}

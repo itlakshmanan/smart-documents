@@ -18,4 +18,16 @@ data class Cart(
 
     @Column(nullable = false)
     var totalAmount: BigDecimal = BigDecimal.ZERO
-) 
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+        other as Cart
+        if (id != 0L && id == other.id) return true
+        return customerId == other.customerId
+    }
+
+    override fun hashCode(): Int {
+        return if (id != 0L) id.hashCode() else customerId.hashCode()
+    }
+}

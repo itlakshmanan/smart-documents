@@ -5,6 +5,10 @@ import com.smartdocument.ordermanagement.repository.CartRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import com.smartdocument.ordermanagement.dto.CartItemRequestDto
+import com.smartdocument.ordermanagement.dto.CartItemResponseDto
+import com.smartdocument.ordermanagement.dto.CartResponseDto
+import com.smartdocument.ordermanagement.exception.OrderManagementServiceException
 
 @Service
 class CartService(private val cartRepository: CartRepository) {
@@ -19,20 +23,21 @@ class CartService(private val cartRepository: CartRepository) {
     }
 
     @Transactional
-    fun addItemToCart(customerId: String, bookId: Long, quantity: Int, price: BigDecimal): Cart {
+    fun addItemToCart(customerId: String, request: CartItemRequestDto): Cart {
+        validateCartItemRequest(request)
         val cart = getCartByCustomerId(customerId)
-        val existingItem = cart.cartItems.find { it.bookId == bookId }
+        val existingItem = cart.cartItems.find { it.bookId == request.bookId }
 
         if (existingItem != null) {
-            existingItem.quantity += quantity
+            existingItem.quantity += request.quantity!!
             existingItem.subtotal = existingItem.price.multiply(BigDecimal(existingItem.quantity))
         } else {
             val newItem = CartItem(
                 cart = cart,
-                bookId = bookId,
-                quantity = quantity,
-                price = price,
-                subtotal = price.multiply(BigDecimal(quantity))
+                bookId = request.bookId!!,
+                quantity = request.quantity!!,
+                price = request.price!!,
+                subtotal = request.price.multiply(BigDecimal(request.quantity!!))
             )
             cart.cartItems.add(newItem)
         }
@@ -43,16 +48,13 @@ class CartService(private val cartRepository: CartRepository) {
 
     @Transactional
     fun updateCartItemQuantity(customerId: String, bookId: Long, quantity: Int): Cart {
+        if (quantity < 1) throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_QUANTITY)
         val cart = getCartByCustomerId(customerId)
         val item = cart.cartItems.find { it.bookId == bookId }
-            ?: throw NoSuchElementException("Item not found in cart")
+            ?: throw OrderManagementServiceException(OrderManagementServiceException.Operation.ITEM_NOT_FOUND_IN_CART)
 
-        if (quantity <= 0) {
-            cart.cartItems.remove(item)
-        } else {
-            item.quantity = quantity
-            item.subtotal = item.price.multiply(BigDecimal(quantity))
-        }
+        item.quantity = quantity
+        item.subtotal = item.price.multiply(BigDecimal(quantity))
 
         updateCartTotal(cart)
         return cartRepository.save(cart)
@@ -77,4 +79,23 @@ class CartService(private val cartRepository: CartRepository) {
     private fun updateCartTotal(cart: Cart) {
         cart.totalAmount = cart.cartItems.sumOf { it.subtotal }
     }
-} 
+
+    fun toCartResponseDto(cart: Cart): CartResponseDto = CartResponseDto(
+        customerId = cart.customerId,
+        totalAmount = cart.totalAmount,
+        items = cart.cartItems.map { toCartItemResponseDto(it) }
+    )
+
+    fun toCartItemResponseDto(item: CartItem): CartItemResponseDto = CartItemResponseDto(
+        bookId = item.bookId,
+        quantity = item.quantity,
+        price = item.price,
+        subtotal = item.subtotal
+    )
+
+    private fun validateCartItemRequest(request: CartItemRequestDto) {
+        if (request.bookId == null) throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_ITEM)
+        if (request.quantity == null || request.quantity < 1) throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_QUANTITY)
+        if (request.price == null || request.price <= BigDecimal.ZERO) throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_PRICE)
+    }
+}
