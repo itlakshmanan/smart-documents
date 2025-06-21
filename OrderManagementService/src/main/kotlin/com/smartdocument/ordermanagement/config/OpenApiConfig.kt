@@ -12,9 +12,23 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.core.io.ClassPathResource
+import org.springframework.util.StreamUtils
+import java.nio.charset.StandardCharsets
 
 @Configuration
 class OpenApiConfig {
+    companion object {
+        const val API_TITLE = "Order Management Service API"
+        const val API_DESCRIPTION = "REST API for managing customer carts and orders"
+        const val API_VERSION = "1.0.0"
+        const val CONTACT_NAME = "Smart Document Team"
+        const val SERVER_URL_DEV = "http://localhost:8082"
+        const val SERVER_DESC_DEV = "Development server"
+        const val SERVER_URL_API = "http://localhost:8082/api/v1"
+        const val SERVER_DESC_API = "API base path"
+        const val OPENAPI_YAML = "openapi.yaml"
+    }
 
     private val logger: Logger = LoggerFactory.getLogger(OpenApiConfig::class.java)
 
@@ -25,52 +39,23 @@ class OpenApiConfig {
         return OpenAPI()
             .info(
                 Info()
-                    .title("Order Management Service API")
-                    .description("""
-                        ## Overview
-                        The Order Management Service provides comprehensive cart and order management capabilities for the Smart Documents online bookstore.
-
-                        ### Key Features
-                        - **Cart Management**: Add, update, remove, and clear cart items
-                        - **Order Processing**: Create orders from cart with inventory validation
-                        - **Payment Integration**: Simulated payment processing with success/failure handling
-                        - **Order Status Tracking**: Complete order lifecycle management
-                        - **Inventory Integration**: Real-time inventory validation with BookInventoryService
-
-                        ### Business Flow
-                        1. **Cart Operations**: Users can manage their shopping cart with various items
-                        2. **Checkout Process**: Cart checkout validates inventory and creates orders
-                        3. **Payment Processing**: Simulated payment with automatic inventory updates
-                        4. **Order Management**: Track and update order status throughout the lifecycle
-
-                        ### Authentication
-                        All API endpoints require HTTP Basic Authentication using the configured credentials.
-
-                        ### Error Handling
-                        The service provides detailed error responses with appropriate HTTP status codes and descriptive messages.
-                    """.trimIndent())
-                    .version("1.0.0")
+                    .title(API_TITLE)
+                    .description(API_DESCRIPTION)
+                    .version(API_VERSION)
                     .contact(
                         Contact()
-                            .name("Smart Documents Team")
-                            .email("support@smartdocuments.com")
-                            .url("https://smartdocuments.com")
-                    )
-                    .license(
-                        License()
-                            .name("MIT License")
-                            .url("https://opensource.org/licenses/MIT")
+                            .name(CONTACT_NAME)
                     )
             )
-            .servers(
-                listOf(
-                    Server()
-                        .url("http://localhost:8082")
-                        .description("Local Development Server"),
-                    Server()
-                        .url("https://order-management-service.smartdocuments.com")
-                        .description("Production Server")
-                )
+            .addServersItem(
+                Server()
+                    .url(SERVER_URL_DEV)
+                    .description(SERVER_DESC_DEV)
+            )
+            .addServersItem(
+                Server()
+                    .url(SERVER_URL_API)
+                    .description(SERVER_DESC_API)
             )
             .components(
                 Components()
@@ -79,11 +64,24 @@ class OpenApiConfig {
                         SecurityScheme()
                             .type(SecurityScheme.Type.HTTP)
                             .scheme("basic")
-                            .description("HTTP Basic Authentication. Use the configured username and password.")
+                            .description("HTTP Basic Authentication. Use the configured username and password. Default credentials: username=orderadmin, password=orderpass123")
                     )
             )
             .addSecurityItem(
                 SecurityRequirement().addList("basicAuth")
             )
+    }
+
+    /**
+     * Load external OpenAPI specification from YAML file
+     * This allows us to maintain API documentation separately from code
+     */
+    fun loadExternalOpenApiSpec(): String? {
+        return try {
+            val resource = ClassPathResource(OPENAPI_YAML)
+            StreamUtils.copyToString(resource.inputStream, StandardCharsets.UTF_8)
+        } catch (e: Exception) {
+            null
+        }
     }
 }
