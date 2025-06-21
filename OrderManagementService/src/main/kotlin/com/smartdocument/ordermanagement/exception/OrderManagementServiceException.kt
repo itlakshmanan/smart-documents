@@ -67,6 +67,9 @@ class OrderManagementServiceException(
         INVALID_CART_QUANTITY(HttpStatus.BAD_REQUEST, "Quantity must be at least 1"),
 
         /** Invalid price information in cart item */
-        INVALID_CART_PRICE(HttpStatus.BAD_REQUEST, "Invalid cart price")
+        INVALID_CART_PRICE(HttpStatus.BAD_REQUEST, "Invalid cart price"),
+
+        /** Invalid request data (missing required fields, malformed data) */
+        INVALID_REQUEST_DATA(HttpStatus.BAD_REQUEST, "Invalid request data")
     }
 }

@@ -52,10 +52,10 @@ class OrderServiceTest {
         every { orderRepository.findById(orderId) } returns java.util.Optional.empty()
 
         // When & Then
-        val exception = assertThrows<NoSuchElementException> {
+        val exception = assertThrows<OrderManagementServiceException> {
             orderService.getOrderById(orderId)
         }
-        assertEquals("Order not found with id: $orderId", exception.message)
+        assertEquals(OrderManagementServiceException.Operation.ORDER_NOT_FOUND, exception.operation)
         verify { orderRepository.findById(orderId) }
     }
 

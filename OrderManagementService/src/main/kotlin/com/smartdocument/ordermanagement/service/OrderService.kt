@@ -41,14 +41,14 @@ class OrderService(
      *
      * @param id The unique identifier of the order
      * @return The order with the specified ID
-     * @throws NoSuchElementException if the order is not found
+     * @throws OrderManagementServiceException if the order is not found
      */
     fun getOrderById(id: Long): Order {
         logger.debug("Getting order by ID: {}", id)
         val order = orderRepository.findById(id)
             .orElseThrow {
                 logger.warn("Order not found with ID: {}", id)
-                NoSuchElementException("Order not found with id: $id")
+                OrderManagementServiceException(OrderManagementServiceException.Operation.ORDER_NOT_FOUND)
             }
         logger.debug("Found order: {} for customer: {} with status: {}", id, order.customerId, order.status)
         return order
@@ -146,7 +146,7 @@ class OrderService(
      * @param id The unique identifier of the order
      * @param status The new status for the order
      * @return The updated order
-     * @throws NoSuchElementException if the order is not found
+     * @throws OrderManagementServiceException if the order is not found
      */
     @Transactional
     fun updateOrderStatus(id: Long, status: OrderStatus): Order {
@@ -173,8 +173,7 @@ class OrderService(
      *
      * @param id The unique identifier of the order to cancel
      * @return The cancelled order
-     * @throws IllegalStateException if the order is delivered and cannot be cancelled
-     * @throws NoSuchElementException if the order is not found
+     * @throws OrderManagementServiceException if the order is not found or cannot be cancelled
      */
     @Transactional
     fun cancelOrder(id: Long): Order {

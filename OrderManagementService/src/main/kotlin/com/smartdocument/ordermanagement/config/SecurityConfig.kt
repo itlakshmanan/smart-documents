@@ -51,16 +51,17 @@ class SecurityConfig {
     private lateinit var password: String
 
     /**
-     * Configures the security filter chain for HTTP requests.
+     * Builds and configures the HTTP security filter chain.
      *
-     * Sets up the security rules for different endpoints:
-     * - Actuator endpoints (/actuator/**) are publicly accessible for health monitoring
-     * - Swagger UI and API documentation endpoints are publicly accessible
-     * - All other endpoints require HTTP Basic Authentication
-     * - CSRF protection is disabled for stateless API design
+     * This method establishes the security configuration for incoming HTTP requests.
+     * It defines which endpoints are publicly accessible and which require authentication.
+     * The configuration includes:
+     * - Disabling CSRF protection for stateless API design
+     * - Configuring endpoint access rules
+     * - Enabling HTTP Basic Authentication
      *
-     * @param http HttpSecurity object to configure
-     * @return SecurityFilterChain with configured security rules
+     * @param http The HttpSecurity builder to configure
+     * @return A configured SecurityFilterChain instance
      */
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {

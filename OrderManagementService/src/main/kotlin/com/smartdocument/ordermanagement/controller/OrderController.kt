@@ -5,6 +5,7 @@ import com.smartdocument.ordermanagement.model.OrderStatus
 import com.smartdocument.ordermanagement.service.OrderService
 import com.smartdocument.ordermanagement.dto.OrderResponseDto
 import com.smartdocument.ordermanagement.mapper.OrderMapper
+import com.smartdocument.ordermanagement.exception.OrderManagementServiceException
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -82,15 +83,14 @@ class OrderController(
      * @param orderId Unique identifier for the order
      * @param request Request containing the new status value
      * @return OrderResponseDto with updated order details
-     * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if order ID is invalid, order not found, or invalid status transition
-     * @throws IllegalArgumentException if status is missing from request
+     * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if order ID is invalid, order not found, invalid status transition, or request data is invalid
      */
     @PatchMapping("/{orderId}")
     fun updateOrderStatus(
         @PathVariable orderId: String,
         @RequestBody request: Map<String, String>
     ): ResponseEntity<OrderResponseDto> {
-        val status = request["status"] ?: throw IllegalArgumentException("Status is required")
+        val status = request["status"] ?: throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_REQUEST_DATA)
         logger.info("Updating order status: {}, new status: {}", orderId, status)
         val order = orderService.updateOrderStatus(orderId.toLong(), OrderStatus.valueOf(status))
         val orderResponse = orderMapper.toOrderResponseDto(order)
