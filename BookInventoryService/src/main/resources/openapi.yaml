@@ -1,0 +1,664 @@
+openapi: 3.0.3
+info:
+  title: Book Inventory Service API
+  description: |
+    REST API for managing book inventory operations
+
+    ## Authentication
+    This API uses HTTP Basic Authentication. All endpoints require authentication.
+
+    **Default Credentials:**
+    - **Username:** `bookadmin`
+    - **Password:** `bookpass123`
+    - **Base64 Encoded:** `Ym9va2FkbWluOmJvb2twYXNzMTIz`
+
+    **Example Authorization Header:**
+    ```
+    Authorization: Basic Ym9va2FkbWluOmJvb2twYXNzMTIz
+    ```
+
+    ## Features
+    - Book CRUD operations (Create, Read, Update, Delete)
+    - Advanced search and filtering with multiple criteria
+    - Inventory management
+    - Genre management
+    - Pagination and sorting support
+  version: 1.0.0
+  contact:
+    name: Smart Document Team
+servers:
+  - url: http://localhost:8081
+    description: Development server
+  - url: http://localhost:8081/api/v1
+    description: API base path
+
+# Global security requirement - applies to all endpoints
+security:
+  - basicAuth: []
+
+paths:
+  /books:
+    get:
+      summary: Get all books
+      description: Retrieves a list of all books in the inventory
+      operationId: getAllBooks
+      responses:
+        '200':
+          description: Successfully retrieved books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookResponse'
+              examples:
+                booksList:
+                  summary: List of books
+                  value:
+                    - id: 1
+                      title: "The Great Gatsby"
+                      author: "F. Scott Fitzgerald"
+                      isbn: "978-0743273565"
+                      genre: "Classic Literature"
+                      price: 12.99
+                      quantity: 25
+                      language: "English"
+                      publisher: "Scribner"
+                      publishedDate: "1925-04-10"
+                      description: "A story of the fabulously wealthy Jay Gatsby..."
+                      createdAt: "2024-01-01T10:00:00Z"
+                      updatedAt: "2024-01-01T10:00:00Z"
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create a new book
+      description: Creates a new book in the inventory
+      operationId: createBook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+            examples:
+              sampleBook:
+                summary: Sample book creation
+                value:
+                  title: "The Great Gatsby"
+                  author: "F. Scott Fitzgerald"
+                  isbn: "978-0743273565"
+                  genre: "Classic Literature"
+                  price: 12.99
+                  quantity: 25
+                  language: "English"
+                  publisher: "Scribner"
+                  publishedDate: "1925-04-10"
+                  description: "A story of the fabulously wealthy Jay Gatsby and his love for the beautiful Daisy Buchanan, set in the Jazz Age on Long Island."
+      responses:
+        '200':
+          description: Successfully created book
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+        '400':
+          description: Bad request - Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - ISBN already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /books/{id}:
+    get:
+      summary: Get book by ID
+      description: Retrieves a specific book by its unique identifier
+      operationId: getBookById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Unique identifier of the book
+          example: 1
+      responses:
+        '200':
+          description: Successfully retrieved book
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update a book
+      description: Updates an existing book's information
+      operationId: updateBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Unique identifier of the book to update
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+      responses:
+        '200':
+          description: Successfully updated book
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+        '400':
+          description: Bad request - Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a book
+      description: Removes a book from the inventory
+      operationId: deleteBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Unique identifier of the book to delete
+          example: 1
+      responses:
+        '204':
+          description: Successfully deleted book
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /books/{id}/inventory:
+    patch:
+      summary: Update book inventory
+      description: Updates the quantity of a specific book in inventory
+      operationId: updateInventory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Unique identifier of the book
+          example: 1
+        - name: quantity
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+          description: New quantity for the book
+          example: 25
+      responses:
+        '200':
+          description: Successfully updated inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /books/genres:
+    get:
+      summary: Get all genres
+      description: Retrieves a list of all available book genres
+      operationId: getAllGenres
+      responses:
+        '200':
+          description: Successfully retrieved genres
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              examples:
+                genresList:
+                  summary: List of genres
+                  value: ["Classic Literature", "Science Fiction", "Fantasy", "Romance", "Mystery"]
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /books/advanced-search:
+    get:
+      summary: Advanced book search
+      description: Search books with multiple optional criteria. All parameters are optional - only provided filters will be applied. Supports pagination and sorting.
+      operationId: searchBooksAdvanced
+      parameters:
+        - name: title
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Book title to search for (partial match, case-insensitive)
+          example: Gatsby
+        - name: author
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Author name to search for (partial match, case-insensitive)
+          example: Fitzgerald
+        - name: genre
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Genre to filter by (exact match, case-insensitive)
+          example: Classic Literature
+        - name: isbn
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ISBN to search for (exact match)
+          example: 978-0743273565
+        - name: language
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Language to filter by (exact match, case-insensitive)
+          example: English
+        - name: publisher
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Publisher to filter by (exact match, case-insensitive)
+          example: Scribner
+        - name: publishedDate
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+          description: Published date to filter by (exact match, yyyy-MM-dd format)
+          example: 1925-04-10
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Page number (zero-based)
+          example: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Page size
+          example: 20
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Sort criteria (e.g., title,asc or author,desc)
+          example: title,asc
+      responses:
+        '200':
+          description: Successfully retrieved search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookResponse'
+                  pageable:
+                    type: object
+                    properties:
+                      pageNumber:
+                        type: integer
+                      pageSize:
+                        type: integer
+                      sort:
+                        type: object
+                        properties:
+                          sorted:
+                            type: boolean
+                          unsorted:
+                            type: boolean
+                      offset:
+                        type: integer
+                      paged:
+                        type: boolean
+                      unpaged:
+                        type: boolean
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  last:
+                    type: boolean
+                  first:
+                    type: boolean
+                  sort:
+                    type: object
+                    properties:
+                      sorted:
+                        type: boolean
+                      unsorted:
+                        type: boolean
+                  numberOfElements:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
+                  empty:
+                    type: boolean
+              examples:
+                searchResults:
+                  summary: Search results with pagination
+                  value:
+                    content:
+                      - id: 1
+                        title: "The Great Gatsby"
+                        author: "F. Scott Fitzgerald"
+                        isbn: "978-0743273565"
+                        genre: "Classic Literature"
+                        price: 12.99
+                        quantity: 25
+                        language: "English"
+                        publisher: "Scribner"
+                        publishedDate: "1925-04-10"
+                        description: "A story of the fabulously wealthy Jay Gatsby..."
+                        createdAt: "2024-01-01T10:00:00Z"
+                        updatedAt: "2024-01-01T10:00:00Z"
+                    pageable:
+                      pageNumber: 0
+                      pageSize: 20
+                      sort:
+                        sorted: true
+                        unsorted: false
+                      offset: 0
+                      paged: true
+                      unpaged: false
+                    totalElements: 1
+                    totalPages: 1
+                    last: true
+                    first: true
+                    sort:
+                      sorted: true
+                      unsorted: false
+                    numberOfElements: 1
+                    size: 20
+                    number: 0
+                    empty: false
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    BookRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          description: Title of the book
+          example: "The Great Gatsby"
+        author:
+          type: string
+          maxLength: 255
+          description: Author of the book
+          example: "F. Scott Fitzgerald"
+        isbn:
+          type: string
+          pattern: '^(97(8|9))?(-?\d){9,12}(-?[\dX])$'
+          description: ISBN of the book (ISBN-10 or ISBN-13, hyphens allowed)
+          example: "978-0743273565"
+        genre:
+          type: string
+          maxLength: 100
+          description: Genre of the book
+          example: "Classic Literature"
+        price:
+          type: number
+          format: decimal
+          minimum: 0
+          exclusiveMinimum: true
+          description: Price of the book
+          example: 12.99
+        quantity:
+          type: integer
+          minimum: 0
+          description: Quantity available in inventory
+          example: 25
+        language:
+          type: string
+          description: Language of the book
+          example: "English"
+        publisher:
+          type: string
+          description: Publisher of the book
+          example: "Scribner"
+        publishedDate:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+          description: Publication date in yyyy-MM-dd format
+          example: "1925-04-10"
+        description:
+          type: string
+          maxLength: 1000
+          description: Description of the book
+          example: "A story of the fabulously wealthy Jay Gatsby and his love for the beautiful Daisy Buchanan, set in the Jazz Age on Long Island."
+      required:
+        - title
+        - author
+        - isbn
+        - genre
+        - price
+        - quantity
+        - language
+        - publisher
+        - publishedDate
+
+    BookResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier of the book
+          example: 1
+        title:
+          type: string
+          description: Title of the book
+          example: "The Great Gatsby"
+        author:
+          type: string
+          description: Author of the book
+          example: "F. Scott Fitzgerald"
+        isbn:
+          type: string
+          description: ISBN of the book
+          example: "978-0743273565"
+        genre:
+          type: string
+          description: Genre of the book
+          example: "Classic Literature"
+        price:
+          type: number
+          format: decimal
+          description: Price of the book
+          example: 12.99
+        quantity:
+          type: integer
+          description: Quantity available in inventory
+          example: 25
+        language:
+          type: string
+          description: Language of the book
+          example: "English"
+        publisher:
+          type: string
+          description: Publisher of the book
+          example: "Scribner"
+        publishedDate:
+          type: string
+          description: Publication date
+          example: "1925-04-10"
+        description:
+          type: string
+          description: Description of the book
+          example: "A story of the fabulously wealthy Jay Gatsby and his love for the beautiful Daisy Buchanan, set in the Jazz Age on Long Island."
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the book was created
+          example: "2024-01-01T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the book was last updated
+          example: "2024-01-01T10:00:00Z"
+      required:
+        - id
+        - title
+        - author
+        - isbn
+        - genre
+        - price
+        - quantity
+        - language
+        - publisher
+        - publishedDate
+        - createdAt
+        - updatedAt
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the error occurred
+          example: "2024-01-01T12:00:00Z"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        message:
+          type: string
+          description: Error message
+          example: "Required fields are missing or invalid."
+        details:
+          type: string
+          nullable: true
+          description: Additional error details
+          example: "Validation failed for field 'isbn'"
+        error:
+          type: string
+          nullable: true
+          description: Error type
+          example: "ValidationException"
+        path:
+          type: string
+          nullable: true
+          description: Request path
+          example: "/api/v1/books"
+      required:
+        - timestamp
+        - status
+        - message
+
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication for API access. Default credentials: username=bookadmin, password=bookpass123

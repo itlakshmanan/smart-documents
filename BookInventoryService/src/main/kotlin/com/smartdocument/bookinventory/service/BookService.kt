@@ -157,9 +157,9 @@ class BookService(private val bookRepository: BookRepository) {
      * @param author optional author filter (partial match, case-insensitive)
      * @param genre optional genre filter (exact match, case-insensitive)
      * @param isbn optional ISBN filter (exact match)
-     * @param language optional language filter
-     * @param publisher optional publisher filter
-     * @param publishedDate optional published date filter
+     * @param language optional language filter (exact match, case-insensitive)
+     * @param publisher optional publisher filter (exact match, case-insensitive)
+     * @param publishedDate optional published date filter (exact match)
      * @param pageable pagination and sorting information
      * @return a page of Book entities matching the filters
      */
@@ -173,8 +173,8 @@ class BookService(private val bookRepository: BookRepository) {
         publishedDate: String?,
         pageable: Pageable
     ): Page<Book> {
-        logger.info("Performing advanced book search with filters - title: {}, author: {}, genre: {}, isbn: {}, page: {}, size: {}",
-                   title, author, genre, isbn, pageable.pageNumber, pageable.pageSize)
+        logger.info("Performing advanced book search with filters - title: {}, author: {}, genre: {}, isbn: {}, language: {}, publisher: {}, publishedDate: {}, page: {}, size: {}",
+                   title, author, genre, isbn, language, publisher, publishedDate, pageable.pageNumber, pageable.pageSize)
 
         // Build dynamic specification based on provided filters
         val spec = Specification.where<Book>(null)
@@ -182,7 +182,9 @@ class BookService(private val bookRepository: BookRepository) {
             .and(author?.let { authorLike(it) })
             .and(genre?.let { genreEquals(it) })
             .and(isbn?.let { isbnEquals(it) })
-            // Add more filters as needed
+            .and(language?.let { languageEquals(it) })
+            .and(publisher?.let { publisherEquals(it) })
+            .and(publishedDate?.let { publishedDateEquals(it) })
 
         val result = bookRepository.findAll(spec, pageable)
         logger.info("Advanced search completed: found {} books out of {} total",
@@ -205,5 +207,23 @@ class BookService(private val bookRepository: BookRepository) {
     // Specification helper for exact ISBN match
     private fun isbnEquals(isbn: String) = Specification<Book> { root, _, cb ->
         cb.equal(root.get<String>("isbn"), isbn)
+    }
+    // Specification helper for case-insensitive language search
+    private fun languageEquals(language: String) = Specification<Book> { root, _, cb ->
+        cb.equal(cb.lower(root.get("language")), language.lowercase())
+    }
+    // Specification helper for case-insensitive publisher search
+    private fun publisherEquals(publisher: String) = Specification<Book> { root, _, cb ->
+        cb.equal(cb.lower(root.get("publisher")), publisher.lowercase())
+    }
+    // Specification helper for exact published date match
+    private fun publishedDateEquals(publishedDate: String) = Specification<Book> { root, _, cb ->
+        try {
+            val localDate = java.time.LocalDate.parse(publishedDate)
+            cb.equal(root.get<java.time.LocalDate>("publishedDate"), localDate)
+        } catch (e: Exception) {
+            // If parsing fails, return a specification that matches nothing
+            cb.equal(cb.literal(1), cb.literal(0))
+        }
     }
 }
