@@ -40,7 +40,30 @@ class OpenApiConfig {
             .info(
                 Info()
                     .title(API_TITLE)
-                    .description(API_DESCRIPTION)
+                    .description("""
+                        REST API for managing customer carts and orders
+
+                        ## Authentication
+                        This API uses HTTP Basic Authentication. All endpoints require authentication.
+
+                        **Default Credentials:**
+                        - **Username:** `orderadmin`
+                        - **Password:** `orderpass123`
+                        - **Base64 Encoded:** `b3JkZXJhZG1pbjpvcmRlcnBhc3MxMjM=`
+
+                        **Example Authorization Header:**
+                        ```
+                        Authorization: Basic b3JkZXJhZG1pbjpvcmRlcnBhc3MxMjM=
+                        ```
+
+                        ## Features
+                        - **Cart Management:** Add, update, remove, and clear cart items
+                        - **Order Processing:** Place orders with inventory validation
+                        - **Order Tracking:** View order status and history
+                        - **Payment Simulation:** Process payments for orders
+                        - **Inventory Integration:** Real-time inventory validation with BookInventoryService
+                        - **Pagination and Sorting:** Support for large datasets
+                    """.trimIndent())
                     .version(API_VERSION)
                     .contact(
                         Contact()
