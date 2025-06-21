@@ -1,4 +1,4 @@
-package com.smartdocument.bookinventory.config
+package com.smartdocument.ordermanagement.config
 
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
@@ -21,10 +21,10 @@ class SecurityConfig {
 
     private val logger: Logger = LoggerFactory.getLogger(SecurityConfig::class.java)
 
-    @Value("\${book.inventory.service.username:bookadmin}")
+    @Value("\${order.management.service.username:orderadmin}")
     private lateinit var username: String
 
-    @Value("\${book.inventory.service.password:bookpass123}")
+    @Value("\${order.management.service.password:orderpass123}")
     private lateinit var password: String
 
     @Bean
