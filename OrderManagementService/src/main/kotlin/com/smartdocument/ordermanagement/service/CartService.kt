@@ -15,6 +15,29 @@ import com.smartdocument.ordermanagement.service.PaymentService
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+/**
+ * Service class responsible for managing shopping cart operations in the Order Management Service.
+ *
+ * This service handles all cart-related business logic including:
+ * - Adding items to cart with inventory validation
+ * - Updating cart item quantities
+ * - Removing items from cart
+ * - Clearing entire carts
+ * - Processing checkout with order creation and payment
+ *
+ * The service integrates with:
+ * - [BookClient] for real-time inventory validation and pricing
+ * - [OrderService] for order creation and management
+ * - [PaymentService] for payment processing
+ * - [CartRepository] for data persistence
+ *
+ * All operations are transactional to ensure data consistency.
+ *
+ * @property cartRepository Repository for cart data persistence
+ * @property bookClient Client for communicating with BookInventoryService
+ * @property orderService Service for order management operations
+ * @property paymentService Service for payment processing
+ */
 @Service
 class CartService(
     private val cartRepository: CartRepository,
@@ -25,6 +48,15 @@ class CartService(
 
     private val logger: Logger = LoggerFactory.getLogger(CartService::class.java)
 
+    /**
+     * Retrieves or creates a cart for a specific customer.
+     *
+     * If a cart doesn't exist for the customer, a new empty cart is created.
+     * If a cart already exists, it is returned as-is.
+     *
+     * @param customerId The unique identifier of the customer
+     * @return The customer's cart (existing or newly created)
+     */
     fun getCartByCustomerId(customerId: String): Cart {
         logger.debug("Getting cart for customer: {}", customerId)
         val cart = cartRepository.findByCustomerId(customerId)
@@ -37,6 +69,12 @@ class CartService(
         }
     }
 
+    /**
+     * Creates a new cart for a specific customer.
+     *
+     * @param customerId The unique identifier of the customer
+     * @return The newly created cart
+     */
     @Transactional
     fun createCart(customerId: String): Cart {
         logger.info("Creating new cart for customer: {}", customerId)
@@ -46,6 +84,23 @@ class CartService(
         return savedCart
     }
 
+    /**
+     * Adds an item to a customer's cart or updates the quantity if the item already exists.
+     *
+     * This operation:
+     * 1. Validates the request (quantity must be at least 1)
+     * 2. Retrieves current book information from BookInventoryService
+     * 3. Validates inventory availability
+     * 4. Updates or adds the cart item with current pricing
+     * 5. Recalculates cart total
+     *
+     * If the item already exists in the cart, the quantity is incremented and pricing is refreshed.
+     *
+     * @param customerId The unique identifier of the customer
+     * @param request The cart item request containing book ID and quantity
+     * @return The updated cart with the new/updated item
+     * @throws OrderManagementServiceException if validation fails or inventory is insufficient
+     */
     @Transactional
     fun addItemToCart(customerId: String, request: CartItemRequestDto): Cart {
         logger.info("Adding item to cart - customer: {}, bookId: {}, quantity: {}",
@@ -105,6 +160,21 @@ class CartService(
         return savedCart
     }
 
+    /**
+     * Updates the quantity of a specific item in a customer's cart.
+     *
+     * This operation:
+     * 1. Validates the new quantity (must be at least 1)
+     * 2. Retrieves current book information for inventory validation
+     * 3. Updates the item quantity and refreshes pricing
+     * 4. Recalculates cart total
+     *
+     * @param customerId The unique identifier of the customer
+     * @param bookId The unique identifier of the book to update
+     * @param quantity The new quantity for the cart item
+     * @return The updated cart
+     * @throws OrderManagementServiceException if validation fails, inventory is insufficient, or item not found
+     */
     @Transactional
     fun updateCartItemQuantity(customerId: String, bookId: Long, quantity: Int): Cart {
         logger.info("Updating cart item quantity - customer: {}, bookId: {}, new quantity: {}",
@@ -145,6 +215,13 @@ class CartService(
         return savedCart
     }
 
+    /**
+     * Removes a specific item from a customer's cart.
+     *
+     * @param customerId The unique identifier of the customer
+     * @param bookId The unique identifier of the book to remove
+     * @return The updated cart without the specified item
+     */
     @Transactional
     fun removeItemFromCart(customerId: String, bookId: Long): Cart {
         logger.info("Removing item from cart - customer: {}, bookId: {}", customerId, bookId)
@@ -165,6 +242,12 @@ class CartService(
         return savedCart
     }
 
+    /**
+     * Clears all items from a customer's cart, resetting the total to zero.
+     *
+     * @param customerId The unique identifier of the customer
+     * @return The cleared cart with no items
+     */
     @Transactional
     fun clearCart(customerId: String): Cart {
         logger.info("Clearing cart for customer: {}", customerId)
@@ -179,6 +262,24 @@ class CartService(
         return savedCart
     }
 
+    /**
+     * Processes the checkout of a customer's cart, creating an order and processing payment.
+     *
+     * This is a complex transactional operation that:
+     * 1. Validates that the cart is not empty
+     * 2. Validates inventory availability for all items
+     * 3. Creates an order from the cart contents
+     * 4. Updates book quantities in the inventory
+     * 5. Processes payment (simulated)
+     * 6. Updates order status based on payment result
+     * 7. Clears the cart after successful processing
+     *
+     * If any step fails, the entire transaction is rolled back to maintain data consistency.
+     *
+     * @param customerId The unique identifier of the customer
+     * @return The created order with final status
+     * @throws OrderManagementServiceException if checkout fails (empty cart, insufficient stock, payment failure)
+     */
     @Transactional
     fun checkoutCart(customerId: String): Order {
         logger.info("Starting checkout process for customer: {}", customerId)
