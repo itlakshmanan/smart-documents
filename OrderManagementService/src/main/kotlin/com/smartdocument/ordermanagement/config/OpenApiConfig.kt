@@ -67,9 +67,6 @@ class OpenApiConfig {
                             .description("HTTP Basic Authentication. Use the configured username and password. Default credentials: username=orderadmin, password=orderpass123")
                     )
             )
-            .addSecurityItem(
-                SecurityRequirement().addList("basicAuth")
-            )
     }
 
     /**

@@ -50,6 +50,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/orders?useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: order_user
       SPRING_DATASOURCE_PASSWORD: order_password
+      ORDER_MANAGEMENT_SERVICE_USERNAME: orderadmin
+      ORDER_MANAGEMENT_SERVICE_PASSWORD: orderpass123
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics
       MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
     networks:
