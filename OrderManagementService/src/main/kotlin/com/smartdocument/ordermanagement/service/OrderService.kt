@@ -185,7 +185,7 @@ class OrderService(
 
         if (order.status == OrderStatus.DELIVERED) {
             logger.warn("Cannot cancel delivered order: {}", id)
-            throw IllegalStateException("Cannot cancel a delivered order")
+            throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_ORDER_STATUS)
         }
 
         if (order.status == OrderStatus.CANCELLED) {

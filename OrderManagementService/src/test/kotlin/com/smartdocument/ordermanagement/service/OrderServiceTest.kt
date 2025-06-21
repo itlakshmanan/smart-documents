@@ -147,14 +147,13 @@ class OrderServiceTest {
         // Given
         val orderId = 1L
         val order = createTestOrder("testuser1", listOf(), orderId, OrderStatus.DELIVERED)
-
         every { orderRepository.findById(orderId) } returns java.util.Optional.of(order)
 
         // When & Then
-        val exception = assertThrows<IllegalStateException> {
+        val exception = assertThrows<OrderManagementServiceException> {
             orderService.cancelOrder(orderId)
         }
-        assertEquals("Cannot cancel a delivered order", exception.message)
+        assertEquals(OrderManagementServiceException.Operation.INVALID_ORDER_STATUS, exception.operation)
         verify { orderRepository.findById(orderId) }
     }
 
