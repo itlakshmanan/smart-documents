@@ -7,8 +7,6 @@ import com.smartdocument.ordermanagement.dto.OrderResponseDto
 import com.smartdocument.ordermanagement.mapper.OrderMapper
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.slf4j.Logger
@@ -26,11 +24,7 @@ class OrderController(
     private val logger: Logger = LoggerFactory.getLogger(OrderController::class.java)
 
     @GetMapping("/{orderId}")
-    @Operation(summary = "Get order details")
-    fun getOrder(
-        @Parameter(description = "Unique identifier for the order")
-        @PathVariable orderId: String
-    ): ResponseEntity<OrderResponseDto> {
+    fun getOrder(@PathVariable orderId: String): ResponseEntity<OrderResponseDto> {
         logger.info("Getting order: {}", orderId)
         val order = orderService.getOrderById(orderId.toLong())
         val orderResponse = orderMapper.toOrderResponseDto(order)
@@ -38,9 +32,7 @@ class OrderController(
     }
 
     @PatchMapping("/{orderId}")
-    @Operation(summary = "Update order status")
     fun updateOrderStatus(
-        @Parameter(description = "Unique identifier for the order")
         @PathVariable orderId: String,
         @RequestBody request: Map<String, String>
     ): ResponseEntity<OrderResponseDto> {
