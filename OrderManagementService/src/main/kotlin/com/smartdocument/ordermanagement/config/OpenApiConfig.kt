@@ -16,6 +16,37 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.util.StreamUtils
 import java.nio.charset.StandardCharsets
 
+/**
+ * OpenAPI configuration for the Order Management Service.
+ *
+ * This configuration class sets up comprehensive API documentation using OpenAPI 3.0
+ * specification. It provides detailed information about the service, authentication,
+ * available endpoints, and usage examples.
+ *
+ * Features configured:
+ * - Service title, description, and version information
+ * - Contact information for the development team
+ * - Multiple server configurations (development and API base path)
+ * - HTTP Basic Authentication scheme documentation
+ * - Comprehensive API description with authentication details
+ * - Support for external OpenAPI specification files
+ *
+ * The configuration includes detailed documentation about:
+ * - Authentication requirements and credentials
+ * - Available features and capabilities
+ * - Server endpoints and their purposes
+ * - Security schemes and requirements
+ *
+ * @property API_TITLE The title of the API documentation
+ * @property API_DESCRIPTION Brief description of the API functionality
+ * @property API_VERSION Current version of the API
+ * @property CONTACT_NAME Name of the development team
+ * @property SERVER_URL_DEV Development server URL
+ * @property SERVER_DESC_DEV Description of the development server
+ * @property SERVER_URL_API API base path URL
+ * @property SERVER_DESC_API Description of the API base path
+ * @property OPENAPI_YAML External OpenAPI specification file name
+ */
 @Configuration
 class OpenApiConfig {
     companion object {
@@ -32,6 +63,21 @@ class OpenApiConfig {
 
     private val logger: Logger = LoggerFactory.getLogger(OpenApiConfig::class.java)
 
+    /**
+     * Creates and configures the OpenAPI specification for the service.
+     *
+     * Builds a comprehensive OpenAPI document that includes:
+     * - Service information (title, description, version)
+     * - Contact information for the development team
+     * - Multiple server configurations for different environments
+     * - Security scheme definitions for HTTP Basic Authentication
+     * - Detailed API description with authentication instructions
+     *
+     * The configuration provides clear documentation for developers
+     * on how to authenticate and use the API endpoints.
+     *
+     * @return OpenAPI specification object with complete configuration
+     */
     @Bean
     fun customOpenAPI(): OpenAPI {
         logger.info("Configuring OpenAPI documentation")
@@ -93,8 +139,14 @@ class OpenApiConfig {
     }
 
     /**
-     * Load external OpenAPI specification from YAML file
-     * This allows us to maintain API documentation separately from code
+     * Loads external OpenAPI specification from a YAML file.
+     *
+     * This method allows maintaining API documentation separately from code,
+     * providing flexibility for complex API specifications. The external
+     * specification can be used to supplement or override the programmatically
+     * generated OpenAPI configuration.
+     *
+     * @return String content of the external OpenAPI YAML file, or null if file not found
      */
     fun loadExternalOpenApiSpec(): String? {
         return try {

@@ -12,6 +12,28 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+/**
+ * REST controller for managing customer orders.
+ *
+ * This controller provides endpoints for order-related operations including:
+ * - Retrieving order details by order ID
+ * - Updating order status (e.g., PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED)
+ *
+ * Orders are created through the cart checkout process and represent completed
+ * purchases. Each order contains order items with book details, quantities,
+ * and pricing information captured at the time of purchase.
+ *
+ * Business rules enforced:
+ * - Orders are immutable after creation (except status updates)
+ * - Order status transitions follow predefined workflow
+ * - Order details include historical pricing information
+ * - All order operations require valid order ID
+ *
+ * Authentication is required for all endpoints using HTTP Basic Authentication.
+ *
+ * @property orderService Service layer for order business logic
+ * @property orderMapper Mapper for converting between order entities and DTOs
+ */
 @RestController
 @RequestMapping("/api/v1/orders")
 @Tag(name = "Order Management", description = "APIs for managing orders")
@@ -23,6 +45,18 @@ class OrderController(
 
     private val logger: Logger = LoggerFactory.getLogger(OrderController::class.java)
 
+    /**
+     * Retrieves order details by order ID.
+     *
+     * Returns complete order information including all order items,
+     * customer details, order status, timestamps, and total amounts.
+     * The response includes historical pricing information captured
+     * at the time of order creation.
+     *
+     * @param orderId Unique identifier for the order
+     * @return OrderResponseDto containing complete order details
+     * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if order ID is invalid or order not found
+     */
     @GetMapping("/{orderId}")
     fun getOrder(@PathVariable orderId: String): ResponseEntity<OrderResponseDto> {
         logger.info("Getting order: {}", orderId)
@@ -31,6 +65,26 @@ class OrderController(
         return ResponseEntity.ok(orderResponse)
     }
 
+    /**
+     * Updates the status of an existing order.
+     *
+     * Allows updating the order status to reflect the current state
+     * of the order processing workflow. Valid status values include:
+     * - PENDING: Order created but not yet confirmed
+     * - CONFIRMED: Order confirmed and being processed
+     * - SHIPPED: Order has been shipped to customer
+     * - DELIVERED: Order has been delivered to customer
+     * - CANCELLED: Order has been cancelled
+     *
+     * Status transitions are validated to ensure they follow the
+     * proper workflow sequence.
+     *
+     * @param orderId Unique identifier for the order
+     * @param request Request containing the new status value
+     * @return OrderResponseDto with updated order details
+     * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if order ID is invalid, order not found, or invalid status transition
+     * @throws IllegalArgumentException if status is missing from request
+     */
     @PatchMapping("/{orderId}")
     fun updateOrderStatus(
         @PathVariable orderId: String,
