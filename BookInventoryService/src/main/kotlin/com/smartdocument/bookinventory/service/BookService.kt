@@ -115,10 +115,17 @@ class BookService(private val bookRepository: BookRepository) {
      * @param quantity the new quantity to set
      * @return the updated Book entity
      * @throws NoSuchElementException if the book is not found
+     * @throws BookInventoryServiceException if quantity is negative
      */
     @Transactional
     fun updateInventory(id: Long, quantity: Int): Book {
         logger.info("Updating inventory for book id: {} to quantity: {}", id, quantity)
+
+        // Validate quantity is not negative
+        if (quantity < 0) {
+            logger.error("Failed to update inventory: Quantity cannot be negative. Book id: {}, requested quantity: {}", id, quantity)
+            throw BookInventoryServiceException(BookInventoryServiceException.Operation.NEGATIVE_QUANTITY)
+        }
 
         val book = getBookById(id)
         val oldQuantity = book.quantity

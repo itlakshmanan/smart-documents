@@ -133,6 +133,11 @@ class BookServiceTest {
     }
 
     @Test
+    fun `updateInventory should throw when quantity is negative`() {
+        assertThrows<BookInventoryServiceException> { bookService.updateInventory(1L, -10) }
+    }
+
+    @Test
     fun `getAllGenres should return unique genres`() {
         whenever(bookRepository.findAllGenres()).thenReturn(listOf("Fiction", "Science Fiction"))
         val result = bookService.getAllGenres()

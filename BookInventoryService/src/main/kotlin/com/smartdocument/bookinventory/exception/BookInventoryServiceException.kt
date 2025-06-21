@@ -14,6 +14,7 @@ class BookInventoryServiceException(
 ) : Exception(operation.message, cause) {
 
     enum class Operation(val httpStatus: HttpStatus = HttpStatus.NOT_FOUND, val message: String) {
-        ISBN_ALREADY_EXISTS(HttpStatus.CONFLICT, "ISBN already exists")
+        ISBN_ALREADY_EXISTS(HttpStatus.CONFLICT, "ISBN already exists"),
+        NEGATIVE_QUANTITY(HttpStatus.BAD_REQUEST, "Quantity must be zero or positive")
     }
 }

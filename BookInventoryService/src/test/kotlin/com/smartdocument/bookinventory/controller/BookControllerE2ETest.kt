@@ -435,7 +435,7 @@ class BookControllerE2ETest {
     }
 
     @Test
-    fun `PATCH update inventory to negative should return 200`() {
+    fun `PATCH update inventory to negative should return 400`() {
         // Create a book
         val book = mapOf(
             "title" to "Negative Inventory",
@@ -461,7 +461,7 @@ class BookControllerE2ETest {
             .contentType(ContentType.JSON)
             .`when`().patch("$basePath/$id/inventory?quantity=-5")
             .then()
-            .statusCode(HttpStatus.OK.value())
+            .statusCode(HttpStatus.BAD_REQUEST.value())
     }
 
     @Test
