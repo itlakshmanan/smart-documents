@@ -114,15 +114,15 @@ Below is a **sequence diagram** capturing a typical *order placement* workflow:
 sequenceDiagram
     participant User
     participant OrderService
-    participant InventoryService
+    participant BookService
     participant OrderDB
-    participant InventoryDB
+    participant BookDB
     participant PaymentSimulator
 
     User->>OrderService: POST /orders (bookId, qty)
-    OrderService->>InventoryService: Check & Reserve Stock
-    InventoryService->>InventoryDB: UPDATE stock - qty
-    InventoryService-->>OrderService: Stock Reserved
+    OrderService->>BookService: Check & Reserve Stock
+    BookService->>BookDB: UPDATE stock - qty
+    BookService-->>OrderService: Stock Reserved
 
     OrderService->>OrderDB: Save order with status = PENDING
     OrderService->>PaymentSimulator: simulatePayment(orderId)
