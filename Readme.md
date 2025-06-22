@@ -139,28 +139,24 @@ Search and filter handled via query parameters.
 ```mermaid
 sequenceDiagram
     participant User
-    participant InventoryService
-    participant InventoryDB
+    participant BookService
+    participant BookDB
 
-    User->>InventoryService: GET /books?author=Kumar
-    InventoryService->>InventoryDB: SELECT * WHERE author = ?
-    InventoryDB-->>InventoryService: book list
-    InventoryService-->>User: book response
-
+    User->>BookService: GET /books?author=Kumar
+    BookService->>BookDB: SELECT * WHERE author = ?
+    BookDB-->>BookService: book list
+    BookService-->>User: book response
 ```
-
-
-
 
 ## 7. Database Design Overview
 
-We use MySQL with a *schema-per-service* approach. For example, one schema (`inventory`) holds book data, and another (`orders`) holds order data. This isolates each service’s tables while using one DB server. Suggested tables include:
+We use MySQL with a *schema-per-service* approach. For example, one schema (`inventory`) holds book data, and another (`orders`) holds order data. This isolates each service's tables while using one DB server. Suggested tables include:
 
 - **`books`** (Inventory schema): `(book_id PK, title, author, genre, isbn, price, stock_qty, language, publisher, published_date, created_at, updated_at)` – stores book metadata and stock level.
 
 - **`orders`** (Orders schema): `(order_id PK, user_id, total_amount, status, created_at, updated_at)` – one row per order.
 
-- **`order_items`** (Orders schema): `(item_id PK, order_id FK, book_id FK, quantity, unit_price, created_at, updated_at)` – items in each order.
+- **`order_items`** (Orders schema): `(item_id PK, order_id FK, book_id FK, quantity, unit_price)` – items in each order.
 
 - **`cart_items`** (Orders schema, optional): `(user_id, book_id FK, quantity)` – temporary cart contents. Could be replaced by pending orders.
 
@@ -189,13 +185,17 @@ Authorization: Basic dXNlcjpwYXNzd29yZA==
 
 - **Security Note**: Basic Auth sends credentials with each request. In production, we would use HTTPS to encrypt credentials in transit.
 
-Using Basic Auth keeps the design simple while securing the APIs. Spring’s implementation handles the challenge/response flow and decoding as shown in the documentation.
+Using Basic Auth keeps the design simple while securing the APIs. Spring's implementation handles the challenge/response flow and decoding as shown in the documentation.
 
 ## 9. AI Tools Utilization Summary
 
-- **Cursor** – Used as an AI coding assistant to autocomplete code snippets and refactor Kotlin/Spring Boot code during development.
+- **Cursor** – Used as an AI coding assistant to autocomplete code snippets and refactor Kotlin/Spring Boot code during development. It also assisted in generating unit tests, resolving compiler issues, and scaffolding service layers quickly.
 
-- **ChatGPT** – Leveraged to gather information on best practices and to help draft this documentation. It helped structure the design, suggest patterns (e.g. schema-per-service), and refine explanations.
+- **ChatGPT** – Leveraged to gather information on best practices and to help draft this documentation. It helped structure the design, suggest architectural patterns (e.g. schema-per-service, CAP theorem trade-offs), and refine explanations in Markdown.
+
+- **Warp AI Terminal** – Used to run and debug CLI commands (e.g., `docker-compose`, `gradlew`, and test runs) with intelligent AI command correction and autocomplete. It enhanced development speed and reduced terminal errors.
+
+- **Mermaid** – Used to generate architecture and sequence diagrams in Markdown using textual definitions. It simplified the visualization of service interactions, data flows, and request lifecycles directly in the README without external tools.
 
 ## 10. Deployment Overview (Docker Compose)
 
@@ -324,3 +324,115 @@ In a production environment, we plan to deploy microservices using AWS services:
 ## 14. Conclusion
 
 This system applies clean microservices architecture with Kotlin and Spring Boot to model a real-world online bookstore. It is secure, scalable, and deployable via Docker and AWS. Core workflows are modular and production-ready, with room for future improvements like JWT auth and async messaging. The design emphasizes simplicity, maintainability, and practical engineering trade-offs.
+
+# Project Implementation Summary
+
+### ✅ Completed Features
+
+#### **Book Inventory Service**
+
+- **Core CRUD Operations**: Complete implementation of Create, Read, Update, Delete operations for books
+- **Advanced Search & Filtering**: Multi-criteria search with pagination, sorting, and filtering by title, author, genre, ISBN, language, publisher, and published date
+- **Inventory Management**: Stock quantity tracking and updates with validation
+- **REST API Endpoints**: Full RESTful API with proper HTTP status codes and error handling
+- **Data Validation**: Comprehensive input validation and business rule enforcement
+- **Security**: Basic Authentication implementation with role-based access control
+- **Database Integration**: JPA/Hibernate integration with MySQL using schema-per-service pattern
+- **Exception Handling**: Global exception handler with standardized error responses
+- **API Documentation**: OpenAPI/Swagger documentation for all endpoints
+
+#### **Order Management Service**
+
+- **Shopping Cart Management**: Complete cart operations (add, update, remove, clear, get cart items)
+- **Order Processing**: Order creation, status tracking, and lifecycle management
+- **Payment Simulation**: Automated payment processing with configurable delays
+- **Inventory Integration**: Real-time stock validation and reservation during order placement
+- **Order Status Workflow**: Complete order lifecycle (PENDING → CONFIRMED → SHIPPED → DELIVERED/CANCELLED)
+- **Cross-Service Communication**: HTTP client integration with Book Inventory Service
+- **Cart Persistence**: Database-backed cart storage with user isolation
+- **Order History**: Customer order retrieval and tracking capabilities
+
+#### **Infrastructure & DevOps**
+
+- **Docker Containerization**: Complete Docker setup for all services and database
+- **Docker Compose**: Orchestrated multi-service deployment with proper networking
+- **Database Setup**: MySQL with separate schemas for service isolation
+- **Environment Configuration**: Comprehensive environment variable management
+- **Service Discovery**: Inter-service communication via Docker networking
+
+#### **Testing & Quality Assurance**
+
+- **Unit & Service-Layer Testing**: Comprehensive test coverage for all service and business logic layers
+- **Test Data Management**: Proper test data setup and cleanup
+- **Mock Testing**: Service layer testing with mocked dependencies
+
+#### **Code Quality & Architecture**
+
+- **Clean Architecture**: Proper separation of concerns with Controller-Service-Repository layers
+- **DTO Pattern**: Request/Response DTOs for API contracts
+- **Mapper Pattern**: Clean data transformation between layers
+- **Exception Handling**: Custom exception hierarchy with proper error codes
+- **Logging**: Structured logging throughout the application
+- **Configuration Management**: Externalized configuration with profiles
+
+### 🔧 Technical Implementation Details
+
+#### **Technology Stack**
+
+- **Backend**: Kotlin + Spring Boot 3.x
+- **Database**: MySQL 8.0 with JPA/Hibernate
+- **Security**: Spring Security with Basic Authentication
+- **Testing**: JUnit 5, Mockito
+- **Documentation**: OpenAPI 3.0 with Swagger UI
+- **Containerization**: Docker + Docker Compose
+- **Build Tool**: Gradle with Kotlin DSL
+
+#### **Service URLs & Documentation**
+
+- **Book Inventory Service**: `http://localhost:8081`
+  - **API Base Path**: `http://localhost:8081/api/v1/books`
+  - **Swagger UI**: `http://localhost:8081/swagger-ui.html`
+  - **OpenAPI Spec**: `http://localhost:8081/v3/api-docs`
+- **Order Management Service**: `http://localhost:8082`
+  - **API Base Path**: `http://localhost:8082/api/v1`
+  - **Cart Endpoints**: `http://localhost:8082/api/v1/cart`
+  - **Order Endpoints**: `http://localhost:8082/api/v1/orders`
+  - **Swagger UI**: `http://localhost:8082/swagger-ui.html`
+  - **OpenAPI Spec**: `http://localhost:8082/v3/api-docs`
+- **MySQL Database**: `localhost:3306`
+  - **Books Schema**: `books` database
+  - **Orders Schema**: `orders` database
+
+#### **Authentication Credentials**
+
+- **Book Inventory Service**:
+  - Username: `bookadmin`
+  - Password: `bookpass123`
+- **Order Management Service**:
+  - Username: `orderadmin`
+  - Password: `orderpass123`
+
+#### **Database Schema**
+
+- **Production Database**: MySQL 8.0 with separate schemas for service isolation
+- **Test Database**: H2 in-memory database for unit testing
+- **Books Schema**: Complete book catalog with metadata and inventory tracking
+- **Orders Schema**: Order management with cart, orders, and order items tables
+- **User Isolation**: Separate database users for service isolation
+- **User Authentication**: In-memory user management (not database-stored)
+
+#### **API Endpoints**
+
+- **Book Inventory**: 8 endpoints covering all CRUD and search operations
+- **Order Management**: 8 endpoints for cart and order management
+- **Authentication**: All endpoints secured with Basic Auth
+- **Error Handling**: Standardized error responses with proper HTTP status codes
+
+#### **Security Features**
+
+- **Authentication**: HTTP Basic Authentication for all endpoints
+- **Authorization**: Role-based access control
+- **Input Validation**: Comprehensive request validation
+- **Error Handling**: Secure error responses without information leakage
+
+The implementation successfully delivers all functional requirements outlined in the design document, with a robust, scalable, and maintainable microservices architecture ready for production deployment.
