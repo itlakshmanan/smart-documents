@@ -32,6 +32,8 @@ services:
       SECURITY_USER_PASSWORD: bookpass123
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics
       MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: always
+      BOOK_INVENTORY_SERVICE_USERNAME: bookadmin
+      BOOK_INVENTORY_SERVICE_PASSWORD: bookpass123
     networks:
       - smart-documents-network
     command: gradle bootRun

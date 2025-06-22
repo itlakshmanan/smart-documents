@@ -34,6 +34,9 @@ class BookInventoryServiceException(
      * - Validation failures (400) for invalid quantities
      */
     enum class Operation(val httpStatus: HttpStatus = HttpStatus.NOT_FOUND, val message: String) {
+        /** Book not found in the system */
+        BOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "Book not found"),
+
         /** Attempted to create a book with an ISBN that already exists */
         ISBN_ALREADY_EXISTS(HttpStatus.CONFLICT, "ISBN already exists"),
 

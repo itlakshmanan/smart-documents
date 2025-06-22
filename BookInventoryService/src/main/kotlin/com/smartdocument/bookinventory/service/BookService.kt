@@ -39,14 +39,14 @@ class BookService(private val bookRepository: BookRepository) {
      *
      * @param id the unique identifier of the book
      * @return the Book entity if found
-     * @throws NoSuchElementException if the book is not found
+     * @throws BookInventoryServiceException if the book is not found
      */
     fun getBookById(id: Long): Book {
         logger.info("Fetching book with id: {}", id)
         return bookRepository.findById(id)
             .orElseThrow {
                 logger.error("Book not found with id: {}", id)
-                NoSuchElementException("Book not found with id: $id")
+                BookInventoryServiceException(BookInventoryServiceException.Operation.BOOK_NOT_FOUND)
             }
             .also { logger.info("Successfully retrieved book: {} (id: {})", it.title, id) }
     }
@@ -91,7 +91,7 @@ class BookService(private val bookRepository: BookRepository) {
      * @param id the unique identifier of the book to update
      * @param updatedBook the Book entity with updated information
      * @return the updated Book entity
-     * @throws NoSuchElementException if the book is not found
+     * @throws BookInventoryServiceException if the book is not found
      */
     @Transactional
     fun updateBook(id: Long, updatedBook: Book): Book {
@@ -114,8 +114,7 @@ class BookService(private val bookRepository: BookRepository) {
      * @param id the unique identifier of the book
      * @param quantity the new quantity to set
      * @return the updated Book entity
-     * @throws NoSuchElementException if the book is not found
-     * @throws BookInventoryServiceException if quantity is negative
+     * @throws BookInventoryServiceException if the book is not found or quantity is negative
      */
     @Transactional
     fun updateInventory(id: Long, quantity: Int): Book {
@@ -141,7 +140,7 @@ class BookService(private val bookRepository: BookRepository) {
      * Deletes a book from the inventory by its unique identifier.
      *
      * @param id the unique identifier of the book to delete
-     * @throws NoSuchElementException if the book is not found
+     * @throws BookInventoryServiceException if the book is not found
      */
     @Transactional
     fun deleteBook(id: Long) {
@@ -150,7 +149,7 @@ class BookService(private val bookRepository: BookRepository) {
         // Check if the book exists before attempting deletion
         if (!bookRepository.existsById(id)) {
             logger.error("Failed to delete book: Book not found with id: {}", id)
-            throw NoSuchElementException("Book not found with id: $id")
+            throw BookInventoryServiceException(BookInventoryServiceException.Operation.BOOK_NOT_FOUND)
         }
 
         bookRepository.deleteById(id)

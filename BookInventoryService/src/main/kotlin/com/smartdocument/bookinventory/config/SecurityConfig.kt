@@ -44,17 +44,17 @@ class SecurityConfig {
 
     private val logger: Logger = LoggerFactory.getLogger(SecurityConfig::class.java)
 
-    @Value("\${book.inventory.service.username:bookadmin}")
+    @Value("\${book.inventory.service.username}")
     private lateinit var username: String
 
-    @Value("\${book.inventory.service.password:bookpass123}")
+    @Value("\${book.inventory.service.password}")
     private lateinit var password: String
 
     /**
      * Configures the security filter chain for HTTP requests.
      *
      * Sets up the security rules for different endpoints:
-     * - Actuator endpoints (/actuator/**) are publicly accessible for health monitoring
+     * - Actuator endpoints (/actuator/) are publicly accessible for health monitoring
      * - Swagger UI and API documentation endpoints are publicly accessible
      * - All other endpoints require HTTP Basic Authentication
      * - CSRF protection is disabled for stateless API design

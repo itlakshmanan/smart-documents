@@ -60,7 +60,7 @@ class BookServiceTest {
     @Test
     fun `getBookById should throw if not found`() {
         whenever(bookRepository.findById(2L)).thenReturn(Optional.empty())
-        assertThrows<NoSuchElementException> { bookService.getBookById(2L) }
+        assertThrows<BookInventoryServiceException> { bookService.getBookById(2L) }
     }
 
     @Test
@@ -98,7 +98,7 @@ class BookServiceTest {
     @Test
     fun `updateBook should throw if not found`() {
         whenever(bookRepository.findById(2L)).thenReturn(Optional.empty())
-        assertThrows<NoSuchElementException> { bookService.updateBook(2L, sampleBook) }
+        assertThrows<BookInventoryServiceException> { bookService.updateBook(2L, sampleBook) }
     }
 
     @Test
@@ -111,7 +111,7 @@ class BookServiceTest {
     @Test
     fun `deleteBook should throw if not found`() {
         whenever(bookRepository.existsById(2L)).thenReturn(false)
-        assertThrows<NoSuchElementException> { bookService.deleteBook(2L) }
+        assertThrows<BookInventoryServiceException> { bookService.deleteBook(2L) }
     }
 
     @Test
@@ -129,7 +129,7 @@ class BookServiceTest {
     @Test
     fun `updateInventory should throw if not found`() {
         whenever(bookRepository.findById(2L)).thenReturn(Optional.empty())
-        assertThrows<NoSuchElementException> { bookService.updateInventory(2L, 100) }
+        assertThrows<BookInventoryServiceException> { bookService.updateInventory(2L, 100) }
     }
 
     @Test
@@ -186,13 +186,13 @@ class BookServiceTest {
     @Test
     fun `updateBook should throw when updating non-existent book`() {
         whenever(bookRepository.findById(999L)).thenReturn(Optional.empty())
-        assertThrows<NoSuchElementException> { bookService.updateBook(999L, sampleBook) }
+        assertThrows<BookInventoryServiceException> { bookService.updateBook(999L, sampleBook) }
     }
 
     @Test
     fun `deleteBook should throw when deleting non-existent book`() {
         whenever(bookRepository.existsById(999L)).thenReturn(false)
-        assertThrows<NoSuchElementException> { bookService.deleteBook(999L) }
+        assertThrows<BookInventoryServiceException> { bookService.deleteBook(999L) }
     }
 
     @Test

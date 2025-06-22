@@ -44,10 +44,10 @@ class SecurityConfig {
 
     private val logger: Logger = LoggerFactory.getLogger(SecurityConfig::class.java)
 
-    @Value("\${order.management.service.username:orderadmin}")
+    @Value("\${order.management.service.username}")
     private lateinit var username: String
 
-    @Value("\${order.management.service.password:orderpass123}")
+    @Value("\${order.management.service.password}")
     private lateinit var password: String
 
     /**
