@@ -56,49 +56,53 @@ These functional requirements align with common e-commerce patterns for inventor
 
 ## 5. High-Level Architecture
 
-At a high level, two Spring Boot microservices (Inventory and Order) run in separate Docker containers. Both services expose REST APIs and connect to the shared MySQL database (using separate schemas to simulate database-per-service isolation). Clients (web/mobile) communicate with these services over HTTP(S), providing Basic Auth credentials. The architecture is designed to leverage containers for deployment: as Atlassian notes, “containers are the primary means of deploying microservices” and tools like Docker streamline resource allocation. The diagram below illustrates the main components and interactions:
+At a high level, two Spring Boot microservices (Book and Order) run in separate Docker containers. Both services expose REST APIs and connect to the shared MySQL database (using separate schemas to simulate database-per-service isolation). Clients (web/mobile) communicate with these services over HTTP(S), providing Basic Auth credentials. The architecture is designed to leverage containers for deployment: as Atlassian notes, “containers are the primary means of deploying microservices” and tools like Docker streamline resource allocation. The diagram below illustrates the main components and interactions:
 
 ```mermaid
-graph LR
-    subgraph Client
-        UI[User / Client]
-    end
+flowchart LR
+  %% Client
+  subgraph "Client"
+    UI["User / Client"]
+  end
 
-    subgraph Security
-        AUTH[Basic Auth]
-    end
+  %% Security
+  subgraph "Security"
+    AUTH(("Basic Auth"))
+  end
 
-    subgraph BookInventory
-        INV[Book Inventory Service]
-        DB_INV[(Book DB - MySQL)]
-    end
+  %% Book Inventory
+  subgraph "Book Inventory"
+    INV["Book Service"]
+    DB_INV["Book DB\nMySQL"]
+  end
 
-    subgraph OrderManagement
-        ORD[Order Management Service]
-        DB_ORD[(Order DB - MySQL)]
-    end
+  %% Order Management
+  subgraph "Order Management"
+    ORD["Order Service"]
+    DB_ORD["Order DB\nMySQL"]
+  end
 
-    %% Services use auth
-    INV --> AUTH
-    ORD --> AUTH
+  %% Service authentication
+  INV -- Uses --> AUTH
+  ORD -- Uses --> AUTH
 
-    %% Client access
-    UI --> INV
-    UI --> ORD
+  %% Client access
+  UI -- "Book Info Request" --> INV
+  UI -- "Order Placement" --> ORD
 
-    %% DB access
-    INV --> DB_INV
-    ORD --> DB_ORD
+  %% DB access
+  INV -- "Read/Write" --> DB_INV
+  ORD -- "Read/Write" --> DB_ORD
 
-    %% Inter-service communication
-    ORD -->|Fetch Book Info| INV
+  %% Inter-service communication
+  ORD -- "Fetch Book Info" --> INV
 ```
 
 - **Book Inventory Service** – Manages the book catalog and stock.
 
 - **Order Management Service** – Handles shopping carts, orders, and payment simulation.
 
-- **MySQL Database** – One instance hosting two schemas (e.g. `inventory` and `orders`) to isolate data.
+- **MySQL Database** – One instance hosting two schemas (e.g. `books` and `orders`) to isolate data.
 
 - **Basic Auth** – Each service is configured with Spring Security to require HTTP Basic credentials.
 
@@ -120,9 +124,9 @@ sequenceDiagram
     participant PaymentSimulator
 
     User->>OrderService: POST /orders (bookId, qty)
-    OrderService->>BookService: Check & Reserve Stock
+    OrderService->>BookService: Check Stock
     BookService->>BookDB: UPDATE stock - qty
-    BookService-->>OrderService: Stock Reserved
+    BookService-->>OrderService: Stock Availability
 
     OrderService->>OrderDB: Save order with status = PENDING
     OrderService->>PaymentSimulator: simulatePayment(orderId)
@@ -150,7 +154,7 @@ sequenceDiagram
 
 ## 7. Database Design Overview
 
-We use MySQL with a *schema-per-service* approach. For example, one schema (`inventory`) holds book data, and another (`orders`) holds order data. This isolates each service's tables while using one DB server. Suggested tables include:
+We use MySQL with a *schema-per-service* approach. For example, one schema (`books`) holds book data, and another (`orders`) holds order data. This isolates each service's tables while using one DB server. Suggested tables include:
 
 - **`books`** (Inventory schema): `(book_id PK, title, author, genre, isbn, price, stock_qty, language, publisher, published_date, created_at, updated_at)` – stores book metadata and stock level.
 
@@ -205,7 +209,7 @@ The entire system is orchestrated via a **`docker-compose.yml`**. Docker Compose
 
 - **Image/Build**: Each Spring Boot service can be built into a Docker image (e.g. using a Dockerfile), or built on-the-fly via `build:`. The MySQL service uses an official MySQL image.
 
-- **Environment Variables**: Database connection details (JDBC URL, user, password) are passed to each service container via environment settings. Example: `SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/inventory`.
+- **Environment Variables**: Database connection details (JDBC URL, user, password) are passed to each service container via environment settings. Example: `SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/books`.
 
 - **Dependencies**: Use `depends_on` so that the database container starts before the services.
 
@@ -225,7 +229,7 @@ docker-compose up order-management-service
 
 ## 11. Scalability and Maintainability Considerations
 
-- **Independent Scaling**: Each microservice can be scaled horizontally using Docker (e.g., `--scale inventory-service=3`). This supports traffic spikes by adding instances behind a load balancer.
+- **Independent Scaling**: Each microservice can be scaled horizontally using Docker (e.g., `--scale book-inventory-service=3`). This supports traffic spikes by adding instances behind a load balancer.
 
 - **Vertical Scaling**: Less common, but containers can be given more resources (CPU/RAM) when needed.
 
@@ -239,7 +243,7 @@ docker-compose up order-management-service
 
 - **CI/CD Ready**: Each service can have its own pipeline. Shared libraries (like DTOs) and well-defined APIs (via OpenAPI) simplify maintenance.
 
-- **Observability**: Centralized logging and monitoring (e.g., ELK stack) ensure service health and traceability.
+- **Observability**: Use **AWS CloudWatch** for centralized logging, metrics, and alarms across microservices. Integrate with **AWS X-Ray** for distributed tracing to identify latency issues and request failures in production.
 
 - **API Versioning**: Versioned endpoints (e.g., `/api/v1/books`) allow services to evolve independently.
 
@@ -311,15 +315,33 @@ In a production environment, we plan to deploy microservices using AWS services:
 
 ## 13. Future Enhancements
 
-- Replace Basic Auth with JWT/OAuth2-based auth.
+#### 13.1 Functional Features
 
-- Replace direct service calls with asynchronous messaging using AWS SNS/SQS for better scalability and service decoupling.
+- **Book Recommendations** – Implement a recommendation engine based on purchase history, browsing behavior, or genre preferences to improve user engagement and upselling.
 
-- Add rate limiting and IP-based throttling via an API Gateway.
+- **E-Book Selling** – Enable digital product support by offering downloadable ePub or PDF files, with license control and optional DRM integration.
 
-- Add caching (e.g., Redis) for search results and product catalogs.
+- **Book Cover Images** – Add support for storing and displaying book cover images (hosted via S3 or local storage) to enhance product listings and UI.
 
-- Break monolithic DB into separate DB instances per service for true isolation.
+- **User Reviews & Ratings** – Allow users to rate and review books. This improves trust and helps future buyers make decisions.
+
+- **Wishlist / Save for Later** – Add a personal wishlist feature for customers to save books for future purchases.
+
+- **Multi-language Book Support** – Extend catalog with language filters and multilingual metadata.
+
+---
+
+#### 13.2 Technical & Architectural Enhancements
+
+- **Replace Basic Auth** – Migrate to JWT or OAuth2 authentication for improved security and scalability (e.g., using Spring Security + Keycloak or Auth0).
+
+- **Caching Layer** – Add Redis for frequently accessed data such as book listings, search filters, and recommendations to reduce DB load and improve response time.
+
+- **Rate Limiting & Throttling** – Use an API Gateway to add IP-based throttling, authentication rate limits, and abuse protection.
+
+- **Database Isolation** – Migrate to independent databases per service (e.g., one MySQL instance for orders, one for inventory) to improve fault isolation and scalability.
+
+- **CI/CD Improvements** – Add automated integration and E2E test pipelines with Docker Compose, GitHub Actions, and staging deployment support.
 
 ## 14. Conclusion
 
