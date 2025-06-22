@@ -55,19 +55,19 @@ class CartControllerIntegrationTest {
     @Value("\${order.management.service.password}")
     private lateinit var password: String
 
-    @Value("\${order.management.service.base-url:/api/v1/carts}")
+    @Value("\${test.cart.base-url}")
     private lateinit var baseUrl: String
 
-    @Value("\${test.cart.default.customer-id:customer123}")
+    @Value("\${test.cart.default.customer-id}")
     private lateinit var defaultCustomerId: String
 
-    @Value("\${test.cart.default.book-id:1}")
+    @Value("\${test.cart.default.book-id}")
     private lateinit var defaultBookId: String
 
-    @Value("\${test.cart.default.quantity:2}")
+    @Value("\${test.cart.default.quantity}")
     private lateinit var defaultQuantity: String
 
-    @Value("\${test.cart.default.price:19.99}")
+    @Value("\${test.cart.default.price}")
     private lateinit var defaultPrice: String
 
     @BeforeEach
@@ -463,7 +463,7 @@ class CartControllerIntegrationTest {
         val cartItemRequest = CartItemRequestDto(bookId = 1L, quantity = 1)
 
         // When & Then - Add item multiple times concurrently (simulated)
-        repeat(3) { index ->
+        repeat(3) { _ ->
             mockMvc.perform(
                 addBasicAuth(
                     post("$baseUrl/$defaultCustomerId/items")

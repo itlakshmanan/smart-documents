@@ -154,6 +154,20 @@ class OrderService(
 
         val order = getOrderById(id)
         val oldStatus = order.status
+
+        // Enforce valid status transitions
+        val valid = when (oldStatus) {
+            OrderStatus.PENDING -> status == OrderStatus.CONFIRMED || status == OrderStatus.CANCELLED
+            OrderStatus.CONFIRMED -> status == OrderStatus.SHIPPED || status == OrderStatus.CANCELLED
+            OrderStatus.SHIPPED -> status == OrderStatus.DELIVERED || status == OrderStatus.CANCELLED
+            OrderStatus.DELIVERED -> status == OrderStatus.DELIVERED // Only allow no-op
+            OrderStatus.CANCELLED -> status == OrderStatus.CANCELLED // Only allow no-op
+        }
+        if (!valid) {
+            logger.warn("Invalid status transition: {} -> {}", oldStatus, status)
+            throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_ORDER_STATUS)
+        }
+
         order.status = status
         order.updatedAt = LocalDateTime.now()
 

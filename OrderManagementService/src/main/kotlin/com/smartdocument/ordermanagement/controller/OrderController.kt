@@ -90,7 +90,13 @@ class OrderController(
         @PathVariable orderId: String,
         @RequestBody request: Map<String, String>
     ): ResponseEntity<OrderResponseDto> {
-        val status = request["status"] ?: throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_REQUEST_DATA)
+        val status = request["status"]
+        if (status == null) {
+            throw OrderManagementServiceException(
+                OrderManagementServiceException.Operation.INVALID_REQUEST_DATA,
+                Throwable("Missing required field: status")
+            )
+        }
         logger.info("Updating order status: {}, new status: {}", orderId, status)
         val order = orderService.updateOrderStatus(orderId.toLong(), OrderStatus.valueOf(status))
         val orderResponse = orderMapper.toOrderResponseDto(order)
