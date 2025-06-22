@@ -261,6 +261,17 @@ class CartServiceTest {
         val newQuantity = 5
         val availableStock = 3
         val book = createTestBook(bookId, BigDecimal("19.99"), availableStock)
+        val cart = Cart(customerId = customerId)
+        val cartItem = CartItem(
+            cart = cart,
+            bookId = bookId,
+            quantity = 1,
+            price = BigDecimal("19.99"),
+            subtotal = BigDecimal("19.99")
+        )
+        cart.cartItems.add(cartItem)
+
+        every { cartRepository.findByCustomerId(customerId) } returns cart
         every { bookClient.getBookById(bookId) } returns book
 
         // When & Then
@@ -575,7 +586,17 @@ class CartServiceTest {
         val customerId = "testuser1"
         val bookId = 1L
         val book = createTestBook(bookId, BigDecimal("19.99"), 10)
+        val cart = Cart(customerId = customerId)
+        val cartItem = CartItem(
+            cart = cart,
+            bookId = bookId,
+            quantity = 1,
+            price = BigDecimal("19.99"),
+            subtotal = BigDecimal("19.99")
+        )
+        cart.cartItems.add(cartItem)
 
+        every { cartRepository.findByCustomerId(customerId) } returns cart
         every { bookClient.getBookById(bookId) } returns book
 
         // When & Then
@@ -593,15 +614,12 @@ class CartServiceTest {
         val cart = Cart(customerId = customerId)
 
         every { cartRepository.findByCustomerId(customerId) } returns cart
-        every { cartRepository.save(any()) } answers { firstArg() }
 
-        // When
-        val result = cartService.removeItemFromCart(customerId, bookId)
-
-        // Then
-        assertTrue(result.cartItems.isEmpty())
-        assertEquals(BigDecimal.ZERO, result.totalAmount)
-        verify { cartRepository.save(any()) }
+        // When & Then
+        val exception = assertThrows<OrderManagementServiceException> {
+            cartService.removeItemFromCart(customerId, bookId)
+        }
+        assertEquals(OrderManagementServiceException.Operation.ITEM_NOT_FOUND_IN_CART, exception.operation)
     }
 
     @Test

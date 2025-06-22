@@ -52,7 +52,7 @@ class CartService(
      * Retrieves or creates a cart for a specific customer.
      *
      * If a cart doesn't exist for the customer, a new empty cart is created.
-     * If a cart already exists, it is returned as-is.
+     * If a cart already exists, it is returned with updated total amount.
      *
      * @param customerId The unique identifier of the customer
      * @return The customer's cart (existing or newly created)
@@ -62,6 +62,8 @@ class CartService(
         val cart = cartRepository.findByCustomerId(customerId)
         return if (cart != null) {
             logger.debug("Found existing cart for customer: {} with {} items", customerId, cart.cartItems.size)
+            // Ensure cart total is up-to-date with current items
+            updateCartTotal(cart)
             cart
         } else {
             logger.info("No cart found for customer: {}, creating new cart", customerId)
@@ -165,9 +167,10 @@ class CartService(
      *
      * This operation:
      * 1. Validates the new quantity (must be at least 1)
-     * 2. Retrieves current book information for inventory validation
-     * 3. Updates the item quantity and refreshes pricing
-     * 4. Recalculates cart total
+     * 2. Checks if the item exists in the cart
+     * 3. Retrieves current book information for inventory validation
+     * 4. Updates the item quantity and refreshes pricing
+     * 5. Recalculates cart total
      *
      * @param customerId The unique identifier of the customer
      * @param bookId The unique identifier of the book to update
@@ -185,6 +188,13 @@ class CartService(
             throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_QUANTITY)
         }
 
+        val cart = getCartByCustomerId(customerId)
+        val item = cart.cartItems.find { it.bookId == bookId }
+            ?: throw OrderManagementServiceException(OrderManagementServiceException.Operation.ITEM_NOT_FOUND_IN_CART)
+
+        logger.debug("Found cart item - bookId: {}, old quantity: {}, old price: {}",
+                    bookId, item.quantity, item.price)
+
         val book = bookClient.getBookById(bookId)
             ?: throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_ITEM)
 
@@ -196,13 +206,6 @@ class CartService(
                        bookId, quantity, book.quantity)
             throw OrderManagementServiceException(OrderManagementServiceException.Operation.INSUFFICIENT_STOCK)
         }
-
-        val cart = getCartByCustomerId(customerId)
-        val item = cart.cartItems.find { it.bookId == bookId }
-            ?: throw OrderManagementServiceException(OrderManagementServiceException.Operation.ITEM_NOT_FOUND_IN_CART)
-
-        logger.debug("Found cart item - bookId: {}, old quantity: {}, old price: {}",
-                    bookId, item.quantity, item.price)
 
         // Update price to current book price for consistency
         item.price = book.price
@@ -221,6 +224,7 @@ class CartService(
      * @param customerId The unique identifier of the customer
      * @param bookId The unique identifier of the book to remove
      * @return The updated cart without the specified item
+     * @throws OrderManagementServiceException if the item is not found in the cart
      */
     @Transactional
     fun removeItemFromCart(customerId: String, bookId: Long): Cart {
@@ -229,12 +233,12 @@ class CartService(
         val cart = getCartByCustomerId(customerId)
         val removed = cart.cartItems.removeIf { it.bookId == bookId }
 
-        if (removed) {
-            logger.debug("Item removed from cart - bookId: {}", bookId)
-        } else {
+        if (!removed) {
             logger.warn("Item not found in cart for removal - bookId: {}", bookId)
+            throw OrderManagementServiceException(OrderManagementServiceException.Operation.ITEM_NOT_FOUND_IN_CART)
         }
 
+        logger.debug("Item removed from cart - bookId: {}", bookId)
         updateCartTotal(cart)
         val savedCart = cartRepository.save(cart)
         logger.info("Successfully removed item from cart - customer: {}, bookId: {}, new total: {}",
