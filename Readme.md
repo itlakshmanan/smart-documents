@@ -108,35 +108,76 @@ flowchart LR
 
 This decomposition follows microservices principles: each service runs autonomously with its own logic and data access, allowing independent deployment and scaling.
 
+### 5.1 Event-Driven Architecture with RabbitMQ
+
+To enable asynchronous, decoupled communication between microservices, the system adopts an event-driven architecture using **RabbitMQ** as a message broker. The **OrderManagementService** is responsible for publishing domain events (such as order placement and order cancellation) to RabbitMQ when key actions occur. The **BookInventoryService** subscribes to these event queues and reacts accordingly—for example, decrementing inventory when an order is placed, or restoring stock when an order is cancelled.
+
+This approach allows the OrderManagementService and BookInventoryService to operate independently, improving scalability and resilience. Services do not need to wait for synchronous responses, and failures in one service do not directly impact the other. RabbitMQ is configured via Spring Boot in both services, and Docker Compose provisions the broker for local development and testing.
+
+**Key Event Flows:**
+
+- When an order is placed, the OrderManagementService publishes an `OrderPlacedEvent`. The BookInventoryService listens for this event and decrements the relevant book's stock.
+- If an order is cancelled, the OrderManagementService publishes an `OrderCancelledEvent`, and the BookInventoryService restores the stock for the cancelled items.
+
+This event-driven pattern supports eventual consistency and loose coupling between microservices, making the system more robust and adaptable to future changes.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant OrderService as OrderManagementService
+    participant MQ as RabbitMQ
+    participant InventoryService as BookInventoryService
+
+    Client->>OrderService: Place Order Request
+    OrderService->>OrderService: Process Order
+    OrderService-->>MQ: Publish OrderPlacedEvent
+    MQ-->>InventoryService: Deliver OrderPlacedEvent
+    InventoryService->>InventoryService: Decrement Stock
+
+    Note over Client, InventoryService: -- Later --
+
+    Client->>OrderService: Cancel Order Request
+    OrderService->>OrderService: Process Cancellation
+    OrderService-->>MQ: Publish OrderCancelledEvent
+    MQ-->>InventoryService: Deliver OrderCancelledEvent
+    InventoryService->>InventoryService: Restore Stock
+```
+
 ## 6. Low-Level Flow Design
 
-#### 6.1 Order Placement
+### 6.1 Order Flow
 
 Below is a **sequence diagram** capturing a typical *order placement* workflow:
 
 ```mermaid
 sequenceDiagram
+    autonumber
     participant User
-    participant OrderService
-    participant BookService
+    participant OrderManagementService
     participant OrderDB
+    participant BookInventoryService
     participant BookDB
-    participant PaymentSimulator
+    participant RabbitMQ
 
-    User->>OrderService: POST /orders (bookId, qty)
-    OrderService->>BookService: Check Stock
-    BookService->>BookDB: UPDATE stock - qty
-    BookService-->>OrderService: Stock Availability
+    User->>OrderManagementService: Place Order (bookId, qty)
+    OrderManagementService->>BookInventoryService: GET /books/{id}
+    BookInventoryService->>BookDB: Fetch Book Info
+    BookDB-->>BookInventoryService: Return Book Info
+    BookInventoryService-->>OrderManagementService: Return book details + stock
 
-    OrderService->>OrderDB: Save order with status = PENDING
-    OrderService->>PaymentSimulator: simulatePayment(orderId)
-    PaymentSimulator-->>OrderService: Payment Success
+    OrderManagementService->>OrderDB: Save Order with Status = PENDING
+    OrderManagementService->>OrderManagementService: Simulate Payment
+    OrderManagementService->>OrderDB: Update Order Status = CONFIRMED
 
-    OrderService->>OrderDB: UPDATE order status = CONFIRMED
-    OrderService-->>User: 201 Created (order confirmed)
+    OrderManagementService-->>RabbitMQ: Publish OrderPlacedEvent
+    RabbitMQ-->>BookInventoryService: Deliver OrderPlacedEvent
+    BookInventoryService->>BookDB: Decrement Stock
+
+    OrderManagementService-->>User: Created (Order Confirmed)
+
 ```
 
-#### 6.2 Book Search + Stock Lookup
+### 6.2 Book Search + Stock Lookup
 
 Search and filter handled via query parameters.
 
@@ -205,7 +246,7 @@ Using Basic Auth keeps the design simple while securing the APIs. Spring's imple
 
 The entire system is orchestrated via a **`docker-compose.yml`**. Docker Compose allows defining multiple containers (services, networks, volumes) in one YAML file. Key points:
 
-- **Services**: We define three services: `book-inventory-service` (Spring Boot app), `order-management-service` (Spring Boot app), and `mysql`.
+- **Services**: We define four services: `book-inventory-service` (Spring Boot app), `order-management-service` (Spring Boot app), `mysql` and `rabbitmq`.
 
 - **Image/Build**: Each Spring Boot service can be built into a Docker image (e.g. using a Dockerfile), or built on-the-fly via `build:`. The MySQL service uses an official MySQL image.
 
@@ -213,7 +254,7 @@ The entire system is orchestrated via a **`docker-compose.yml`**. Docker Compose
 
 - **Dependencies**: Use `depends_on` so that the database container starts before the services.
 
-- **Networks**: All services share a Docker network, allowing them to communicate by container name (`mysql`).
+- **Networks**: All services share a Docker network, allowing them to communicate by container name (`mysql` and `rabbitmq`).
 
 - **Volumes**: Mount a volume for MySQL data to persist data across restarts.
 
@@ -223,6 +264,7 @@ To start invidual containers use below commands:
 
 ```yaml
 docker-compose up -d mysql
+docker-compose up -d rabbitmq
 docker-compose up book-inventory-service
 docker-compose up order-management-service
 ```
@@ -255,7 +297,7 @@ By following these practices, the system can grow in capacity and adapt to new f
 
 ## 12. Production Deployment Strategy (AWS + CI/CD)
 
-#### **12.1 Deployment Infrastructure (AWS):**
+### **12.1 Deployment Infrastructure (AWS):**
 
 In a production environment, we plan to deploy microservices using AWS services:
 
@@ -287,7 +329,7 @@ In a production environment, we plan to deploy microservices using AWS services:
   
   - Infrastructure as Code (IaC) using CloudFormation templates to provision EC2, ALB, RDS, and other components reliably and repeatably.
 
-#### **12.2 CI/CD Pipeline:**
+### **12.2 CI/CD Pipeline:**
 
 - **Source Control**:
   
@@ -315,7 +357,7 @@ In a production environment, we plan to deploy microservices using AWS services:
 
 ## 13. Future Enhancements
 
-#### 13.1 Functional Features
+### 13.1 Functional Features
 
 - **Book Recommendations** – Implement a recommendation engine based on purchase history, browsing behavior, or genre preferences to improve user engagement and upselling.
 
@@ -329,9 +371,9 @@ In a production environment, we plan to deploy microservices using AWS services:
 
 - **Multi-language Book Support** – Extend catalog with language filters and multilingual metadata.
 
----
 
-#### 13.2 Technical & Architectural Enhancements
+
+### 13.2 Technical & Architectural Enhancements
 
 - **Replace Basic Auth** – Migrate to JWT or OAuth2 authentication for improved security and scalability (e.g., using Spring Security + Keycloak or Auth0).
 
@@ -351,7 +393,7 @@ This system applies clean microservices architecture with Kotlin and Spring Boot
 
 ### ✅ Completed Features
 
-#### **Book Inventory Service**
+## **Book Inventory Service**
 
 - **Core CRUD Operations**: Complete implementation of Create, Read, Update, Delete operations for books
 - **Advanced Search & Filtering**: Multi-criteria search with pagination, sorting, and filtering by title, author, genre, ISBN, language, publisher, and published date
@@ -363,7 +405,7 @@ This system applies clean microservices architecture with Kotlin and Spring Boot
 - **Exception Handling**: Global exception handler with standardized error responses
 - **API Documentation**: OpenAPI/Swagger documentation for all endpoints
 
-#### **Order Management Service**
+## **Order Management Service**
 
 - **Shopping Cart Management**: Complete cart operations (add, update, remove, clear, get cart items)
 - **Order Processing**: Order creation, status tracking, and lifecycle management
@@ -374,21 +416,23 @@ This system applies clean microservices architecture with Kotlin and Spring Boot
 - **Cart Persistence**: Database-backed cart storage with user isolation
 - **Order History**: Customer order retrieval and tracking capabilities
 
-#### **Infrastructure & DevOps**
+## **Infrastructure & DevOps**
 
 - **Docker Containerization**: Complete Docker setup for all services and database
 - **Docker Compose**: Orchestrated multi-service deployment with proper networking
+- **Event-Driven Architecture**: RabbitMQ integration for event-driven communication.
 - **Database Setup**: MySQL with separate schemas for service isolation
 - **Environment Configuration**: Comprehensive environment variable management
 - **Service Discovery**: Inter-service communication via Docker networking
 
-#### **Testing & Quality Assurance**
+## **Testing & Quality Assurance**
 
 - **Unit & Service-Layer Testing**: Comprehensive test coverage for all service and business logic layers
+- **Integration Testing**: Integration tests ensure the correct behavior of REST APIs and database interactions, providing confidence in the system's end-to-end functionality.
 - **Test Data Management**: Proper test data setup and cleanup
 - **Mock Testing**: Service layer testing with mocked dependencies
 
-#### **Code Quality & Architecture**
+## **Code Quality & Architecture**
 
 - **Clean Architecture**: Proper separation of concerns with Controller-Service-Repository layers
 - **DTO Pattern**: Request/Response DTOs for API contracts
@@ -397,9 +441,7 @@ This system applies clean microservices architecture with Kotlin and Spring Boot
 - **Logging**: Structured logging throughout the application
 - **Configuration Management**: Externalized configuration with profiles
 
-### 🔧 Technical Implementation Details
-
-#### **Technology Stack**
+## **Technology Stack**
 
 - **Backend**: Kotlin + Spring Boot 3.x
 - **Database**: MySQL 8.0 with JPA/Hibernate
@@ -409,7 +451,7 @@ This system applies clean microservices architecture with Kotlin and Spring Boot
 - **Containerization**: Docker + Docker Compose
 - **Build Tool**: Gradle with Kotlin DSL
 
-#### **Service URLs & Documentation**
+## **Service URLs & Documentation**
 
 - **Book Inventory Service**: `http://localhost:8081`
   - **API Base Path**: `http://localhost:8081/api/v1/books`
@@ -425,7 +467,7 @@ This system applies clean microservices architecture with Kotlin and Spring Boot
   - **Books Schema**: `books` database
   - **Orders Schema**: `orders` database
 
-#### **Authentication Credentials**
+## **Authentication Credentials**
 
 - **Book Inventory Service**:
   - Username: `bookadmin`
@@ -434,7 +476,7 @@ This system applies clean microservices architecture with Kotlin and Spring Boot
   - Username: `orderadmin`
   - Password: `orderpass123`
 
-#### **Database Schema**
+## **Database Schema**
 
 - **Production Database**: MySQL 8.0 with separate schemas for service isolation
 - **Test Database**: H2 in-memory database for unit testing
@@ -443,14 +485,14 @@ This system applies clean microservices architecture with Kotlin and Spring Boot
 - **User Isolation**: Separate database users for service isolation
 - **User Authentication**: In-memory user management (not database-stored)
 
-#### **API Endpoints**
+## **API Endpoints**
 
 - **Book Inventory**: 8 endpoints covering all CRUD and search operations
 - **Order Management**: 8 endpoints for cart and order management
 - **Authentication**: All endpoints secured with Basic Auth
 - **Error Handling**: Standardized error responses with proper HTTP status codes
 
-#### **Security Features**
+## **Security Features**
 
 - **Authentication**: HTTP Basic Authentication for all endpoints
 - **Authorization**: Role-based access control
