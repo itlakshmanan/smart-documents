@@ -19,7 +19,7 @@ class OrderCancelledEventListener(
             event.items.forEach { item ->
                 try {
                     logger.info("Restoring inventory for bookId: {} (type: {}) by quantity: {}", item.bookId, item.bookId::class.simpleName, item.quantity)
-                    bookService.incrementBookQuantity(item.bookId, item.quantity)
+                    bookService.incrementBookQuantity(item.bookId.toLong(), item.quantity)
                 } catch (ex: Exception) {
                     logger.error("Failed to restore inventory for bookId: {}: {}", item.bookId, ex.message, ex)
                 }

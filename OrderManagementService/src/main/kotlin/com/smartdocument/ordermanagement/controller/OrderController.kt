@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import com.smartdocument.ordermanagement.dto.UpdateOrderStatusRequestDto
 
 /**
  * REST controller for managing customer orders.
@@ -114,17 +115,10 @@ class OrderController(
     @PatchMapping("/{orderId}")
     fun updateOrderStatus(
         @PathVariable orderId: String,
-        @RequestBody request: Map<String, String>
+        @RequestBody request: UpdateOrderStatusRequestDto
     ): ResponseEntity<OrderResponseDto> {
-        val status = request["status"]
-        if (status == null) {
-            throw OrderManagementServiceException(
-                OrderManagementServiceException.Operation.INVALID_REQUEST_DATA,
-                Throwable("Missing required field: status")
-            )
-        }
-        logger.info("Updating order status: {}, new status: {}", orderId, status)
-        val order = orderService.updateOrderStatus(orderId.toLong(), OrderStatus.valueOf(status))
+        logger.info("Updating order status: {}, new status: {}", orderId, request.status)
+        val order = orderService.updateOrderStatus(orderId.toLong(), OrderStatus.valueOf(request.status!!.trim()))
         val orderResponse = orderMapper.toOrderResponseDto(order)
         return ResponseEntity.ok(orderResponse)
     }

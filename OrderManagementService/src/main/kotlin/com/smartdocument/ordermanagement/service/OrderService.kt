@@ -150,21 +150,25 @@ class OrderService(
      * @param order The order for which the event should be published. Must be a persisted order with items.
      */
     private fun publishOrderPlacedEvent(order: Order) {
-        val event = OrderPlacedEvent(
-            orderId = order.id.toString(),
-            items = order.orderItems.map { item ->
-                OrderPlacedEvent.Item(
-                    bookId = item.bookId.toString(),
-                    quantity = item.quantity
-                )
-            }
-        )
-        rabbitTemplate.convertAndSend(
-            RabbitMQConfig.ORDER_EXCHANGE,
-            RabbitMQConfig.ORDER_PLACED_ROUTING_KEY,
-            event
-        )
-        logger.info("Published OrderPlacedEvent for order: {}", order.id)
+        try {
+            val event = OrderPlacedEvent(
+                orderId = order.id.toString(),
+                items = order.orderItems.map { item ->
+                    OrderPlacedEvent.Item(
+                        bookId = item.bookId.toString(),
+                        quantity = item.quantity
+                    )
+                }
+            )
+            rabbitTemplate.convertAndSend(
+                RabbitMQConfig.ORDER_EXCHANGE,
+                RabbitMQConfig.ORDER_PLACED_ROUTING_KEY,
+                event
+            )
+            logger.info("Published OrderPlacedEvent for order: {}", order.id)
+        } catch (ex: Exception) {
+            logger.error("Failed to publish OrderPlacedEvent for order: ${order.id}", ex)
+        }
     }
 
     /**
@@ -265,21 +269,25 @@ class OrderService(
      * @param order The order for which the event should be published. Must be a persisted order with items.
      */
     private fun publishOrderCancelledEvent(order: Order) {
-        val event = OrderCancelledEvent(
-            orderId = order.id.toString(),
-            items = order.orderItems.map { item ->
-                OrderCancelledEvent.Item(
-                    bookId = item.bookId.toString(),
-                    quantity = item.quantity
-                )
-            }
-        )
-        logger.info("[OrderCancelledEvent] Publishing event: orderId={}, items={}", event.orderId, event.items)
-        rabbitTemplate.convertAndSend(
-            RabbitMQConfig.ORDER_EXCHANGE,
-            RabbitMQConfig.ORDER_CANCELLED_ROUTING_KEY,
-            event
-        )
-        logger.info("Published OrderCancelledEvent for order: {}", order.id)
+        try {
+            val event = OrderCancelledEvent(
+                orderId = order.id.toString(),
+                items = order.orderItems.map { item ->
+                    OrderCancelledEvent.Item(
+                        bookId = item.bookId.toString(),
+                        quantity = item.quantity
+                    )
+                }
+            )
+            logger.info("[OrderCancelledEvent] Publishing event: orderId={}, items={}", event.orderId, event.items)
+            rabbitTemplate.convertAndSend(
+                RabbitMQConfig.ORDER_EXCHANGE,
+                RabbitMQConfig.ORDER_CANCELLED_ROUTING_KEY,
+                event
+            )
+            logger.info("Published OrderCancelledEvent for order: {}", order.id)
+        } catch (ex: Exception) {
+            logger.error("Failed to publish OrderCancelledEvent for order: ${order.id}", ex)
+        }
     }
 }

@@ -317,7 +317,7 @@ class CartService(
             logger.info("Order status updated to CONFIRMED - orderId: {}", order.id)
         } catch (e: Exception) {
             logger.error("Payment failed for order: {} - {}", order.id, e.message)
-            orderService.updateOrderStatus(order.id, OrderStatus.CANCELLED)
+            orderService.cancelOrder(order.id)
             logger.info("Order cancelled - orderId: {}", order.id)
             throw OrderManagementServiceException(OrderManagementServiceException.Operation.PAYMENT_FAILED, e)
         }

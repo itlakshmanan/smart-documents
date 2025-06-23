@@ -362,11 +362,13 @@ class CartServiceTest {
         cart.totalAmount = cartItem.subtotal
         val book = createTestBook(bookId, price, 10)
         val order = createTestOrder(customerId, listOf(cartItem), 1L)
+        order.status = OrderStatus.CONFIRMED
+        order.updatedAt = java.time.LocalDateTime.now()
+        order.createdAt = java.time.LocalDateTime.now()
 
         every { cartRepository.findByCustomerId(customerId) } returns cart
         every { cartRepository.save(any()) } answers { firstArg() }
         every { bookClient.getBookById(bookId) } returns book
-        every { bookClient.updateBookQuantity(bookId, 10 - quantity) } returns true
         every { orderService.createOrder(any()) } returns order
         every { paymentService.processPayment(order.id, order.totalAmount) } returns true
         every { orderService.updateOrderStatus(order.id, OrderStatus.CONFIRMED) } returns order
@@ -376,9 +378,22 @@ class CartServiceTest {
         val result = cartService.checkoutCart(customerId)
 
         // Then
-        assertEquals(order, result)
+        assertEquals(order.id, result.id)
+        assertEquals(order.customerId, result.customerId)
+        assertEquals(order.status, result.status)
+        assertEquals(order.totalAmount, result.totalAmount)
+        assertEquals(order.orderItems.size, result.orderItems.size)
+        for (i in order.orderItems.indices) {
+            val expectedItem = order.orderItems[i]
+            val actualItem = result.orderItems[i]
+            assertEquals(expectedItem.bookId, actualItem.bookId)
+            assertEquals(expectedItem.quantity, actualItem.quantity)
+            assertEquals(expectedItem.price, actualItem.price)
+            assertEquals(expectedItem.subtotal, actualItem.subtotal)
+        }
+        assertNotNull(result.createdAt)
+        assertNotNull(result.updatedAt)
         verify { bookClient.getBookById(bookId) }
-        verify { bookClient.updateBookQuantity(bookId, 10 - quantity) }
         verify { orderService.createOrder(any()) }
         verify { paymentService.processPayment(order.id, order.totalAmount) }
         verify { orderService.updateOrderStatus(order.id, OrderStatus.CONFIRMED) }
@@ -418,14 +433,16 @@ class CartServiceTest {
         cart.totalAmount = cartItem.subtotal
         val book = createTestBook(bookId, price, 10)
         val order = createTestOrder(customerId, listOf(cartItem), 1L)
+        order.status = OrderStatus.CANCELLED
+        order.updatedAt = java.time.LocalDateTime.now()
+        order.createdAt = java.time.LocalDateTime.now()
 
         every { cartRepository.findByCustomerId(customerId) } returns cart
         every { cartRepository.save(any()) } answers { firstArg() }
         every { bookClient.getBookById(bookId) } returns book
-        every { bookClient.updateBookQuantity(any(), any()) } returns true
         every { orderService.createOrder(any()) } returns order
         every { paymentService.processPayment(order.id, order.totalAmount) } throws OrderManagementServiceException(OrderManagementServiceException.Operation.PAYMENT_FAILED)
-        every { orderService.updateOrderStatus(order.id, OrderStatus.CANCELLED) } returns order
+        every { orderService.cancelOrder(any()) } returns order
 
         // When & Then
         val exception = assertThrows<OrderManagementServiceException> {
@@ -433,9 +450,9 @@ class CartServiceTest {
         }
         assertEquals(OrderManagementServiceException.Operation.PAYMENT_FAILED, exception.operation)
         verify { bookClient.getBookById(bookId) }
-        verify(exactly = 2) { bookClient.updateBookQuantity(any(), any()) } // Once for reduce, once for restore
+        verify { orderService.createOrder(any()) }
         verify { paymentService.processPayment(order.id, order.totalAmount) }
-        verify { orderService.updateOrderStatus(order.id, OrderStatus.CANCELLED) }
+        verify { orderService.cancelOrder(any()) }
     }
 
     // Helper methods

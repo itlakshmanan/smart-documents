@@ -23,10 +23,11 @@ class OrderServiceTest {
 
     private val orderRepository: OrderRepository = mockk()
     private val bookClient: BookClient = mockk()
+    private val rabbitTemplate: org.springframework.amqp.rabbit.core.RabbitTemplate = mockk(relaxed = true)
 
     @BeforeEach
     fun setUp() {
-        orderService = OrderService(orderRepository, bookClient)
+        orderService = OrderService(orderRepository, bookClient, rabbitTemplate)
     }
 
     @Test

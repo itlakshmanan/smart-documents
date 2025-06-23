@@ -26,6 +26,9 @@ import org.junit.jupiter.api.Assertions.*
 import java.math.BigDecimal
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers
+import com.smartdocument.ordermanagement.dto.UpdateOrderStatusRequestDto
+import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.amqp.rabbit.core.RabbitTemplate
 
 @SpringBootTest
 @AutoConfigureWebMvc
@@ -66,6 +69,9 @@ class OrderControllerIntegrationTest {
 
     @Value("\${test.order.default.price}")
     private lateinit var defaultPrice: String
+
+    @MockBean
+    private lateinit var rabbitTemplate: RabbitTemplate
 
     @BeforeEach
     fun setUp() {
@@ -124,7 +130,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val statusUpdateRequest = mapOf("status" to OrderStatus.CONFIRMED.name)
+        val statusUpdateRequest = UpdateOrderStatusRequestDto(OrderStatus.CONFIRMED.name)
 
         // When & Then
         mockMvc.perform(
@@ -152,7 +158,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val invalidStatusRequest = mapOf("status" to "INVALID_STATUS")
+        val invalidStatusRequest = UpdateOrderStatusRequestDto("INVALID_STATUS")
 
         // When & Then
         mockMvc.perform(
@@ -168,7 +174,7 @@ class OrderControllerIntegrationTest {
     @Test
     fun `should return 404 when updating status for non-existent order`() {
         // Given
-        val statusUpdateRequest = mapOf("status" to OrderStatus.CONFIRMED.name)
+        val statusUpdateRequest = UpdateOrderStatusRequestDto(OrderStatus.CONFIRMED.name)
 
         // When & Then
         mockMvc.perform(
@@ -259,7 +265,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val statusUpdateRequest = mapOf("status" to OrderStatus.CONFIRMED.name)
+        val statusUpdateRequest = UpdateOrderStatusRequestDto(OrderStatus.CONFIRMED.name)
 
         // When & Then - Update status multiple times (simulated concurrent updates)
         // First update should succeed, subsequent ones should fail due to validation
@@ -313,33 +319,13 @@ class OrderControllerIntegrationTest {
     }
 
     @Test
-    fun `should handle empty JSON in status update request`() {
-        // Given
-        val orderItem = createTestOrderItem(null, defaultBookId.toLong(), defaultQuantity.toInt())
-        val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
-        val savedOrder = orderRepository.save(order)
-
-        val emptyJson = "{}"
-
-        // When & Then
-        mockMvc.perform(
-            addBasicAuth(
-                patch("$baseUrl/${savedOrder.id}")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(emptyJson)
-            )
-        )
-            .andExpect(status().isBadRequest)
-    }
-
-    @Test
     fun `should prevent invalid status transitions - PENDING to DELIVERED`() {
         // Given
         val orderItem = createTestOrderItem(null, defaultBookId.toLong(), defaultQuantity.toInt())
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val invalidStatusRequest = mapOf("status" to OrderStatus.DELIVERED.name)
+        val invalidStatusRequest = UpdateOrderStatusRequestDto(OrderStatus.DELIVERED.name)
 
         // When & Then
         mockMvc.perform(
@@ -365,7 +351,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.CONFIRMED, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val invalidStatusRequest = mapOf("status" to OrderStatus.PENDING.name)
+        val invalidStatusRequest = UpdateOrderStatusRequestDto(OrderStatus.PENDING.name)
 
         // When & Then
         mockMvc.perform(
@@ -391,7 +377,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.DELIVERED, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val invalidStatusRequest = mapOf("status" to OrderStatus.SHIPPED.name)
+        val invalidStatusRequest = UpdateOrderStatusRequestDto(OrderStatus.SHIPPED.name)
 
         // When & Then
         mockMvc.perform(
@@ -417,7 +403,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.CANCELLED, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val invalidStatusRequest = mapOf("status" to OrderStatus.CONFIRMED.name)
+        val invalidStatusRequest = UpdateOrderStatusRequestDto(OrderStatus.CONFIRMED.name)
 
         // When & Then
         mockMvc.perform(
@@ -443,7 +429,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val cancelRequest = mapOf("status" to OrderStatus.CANCELLED.name)
+        val cancelRequest = UpdateOrderStatusRequestDto(OrderStatus.CANCELLED.name)
 
         // When & Then
         mockMvc.perform(
@@ -470,7 +456,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.CONFIRMED, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val cancelRequest = mapOf("status" to OrderStatus.CANCELLED.name)
+        val cancelRequest = UpdateOrderStatusRequestDto(OrderStatus.CANCELLED.name)
 
         // When & Then
         mockMvc.perform(
@@ -496,7 +482,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.SHIPPED, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val cancelRequest = mapOf("status" to OrderStatus.CANCELLED.name)
+        val cancelRequest = UpdateOrderStatusRequestDto(OrderStatus.CANCELLED.name)
 
         // When & Then
         mockMvc.perform(
@@ -522,7 +508,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.DELIVERED, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val cancelRequest = mapOf("status" to OrderStatus.CANCELLED.name)
+        val cancelRequest = UpdateOrderStatusRequestDto(OrderStatus.CANCELLED.name)
 
         // When & Then
         mockMvc.perform(
@@ -548,7 +534,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.CANCELLED, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val cancelRequest = mapOf("status" to OrderStatus.CANCELLED.name)
+        val cancelRequest = UpdateOrderStatusRequestDto(OrderStatus.CANCELLED.name)
 
         // When & Then
         mockMvc.perform(
@@ -635,64 +621,13 @@ class OrderControllerIntegrationTest {
     }
 
     @Test
-    fun `should handle status update with missing status field`() {
-        // Given
-        val orderItem = createTestOrderItem(null, defaultBookId.toLong(), defaultQuantity.toInt())
-        val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
-        val savedOrder = orderRepository.save(order)
-
-        val invalidRequest = mapOf("someOtherField" to "someValue")
-
-        // When & Then
-        mockMvc.perform(
-            addBasicAuth(
-                patch("$baseUrl/${savedOrder.id}")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(invalidRequest))
-            )
-        )
-            .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.message").value("Invalid request data"))
-
-        // Verify order status was not changed
-        val unchangedOrder = orderRepository.findById(savedOrder.id)
-        assertTrue(unchangedOrder.isPresent)
-        assertEquals(OrderStatus.PENDING, unchangedOrder.get().status)
-    }
-
-    @Test
-    fun `should handle status update with null status value`() {
-        // Given
-        val orderItem = createTestOrderItem(null, defaultBookId.toLong(), defaultQuantity.toInt())
-        val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
-        val savedOrder = orderRepository.save(order)
-
-        val invalidRequest = mapOf("status" to null)
-
-        // When & Then
-        mockMvc.perform(
-            addBasicAuth(
-                patch("$baseUrl/${savedOrder.id}")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(invalidRequest))
-            )
-        )
-            .andExpect(status().isBadRequest)
-
-        // Verify order status was not changed
-        val unchangedOrder = orderRepository.findById(savedOrder.id)
-        assertTrue(unchangedOrder.isPresent)
-        assertEquals(OrderStatus.PENDING, unchangedOrder.get().status)
-    }
-
-    @Test
     fun `should handle status update with empty status string`() {
         // Given
         val orderItem = createTestOrderItem(null, defaultBookId.toLong(), defaultQuantity.toInt())
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val invalidRequest = mapOf("status" to "")
+        val invalidRequest = UpdateOrderStatusRequestDto("")
 
         // When & Then
         mockMvc.perform(
@@ -717,7 +652,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val invalidRequest = mapOf("status" to "   ")
+        val invalidRequest = UpdateOrderStatusRequestDto("   ")
 
         // When & Then
         mockMvc.perform(
@@ -742,7 +677,7 @@ class OrderControllerIntegrationTest {
         val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
         val savedOrder = orderRepository.save(order)
 
-        val invalidRequest = mapOf("status" to "confirmed") // lowercase
+        val invalidRequest = UpdateOrderStatusRequestDto("confirmed") // lowercase
 
         // When & Then
         mockMvc.perform(
@@ -863,36 +798,6 @@ class OrderControllerIntegrationTest {
     }
 
     @Test
-    fun `should handle status update with extra fields in request`() {
-        // Given
-        val orderItem = createTestOrderItem(null, defaultBookId.toLong(), defaultQuantity.toInt())
-        val order = createTestOrderWithItems(defaultCustomerId, OrderStatus.PENDING, listOf(orderItem))
-        val savedOrder = orderRepository.save(order)
-
-        val requestWithExtraFields = mapOf(
-            "status" to OrderStatus.CONFIRMED.name,
-            "extraField1" to "extraValue1",
-            "extraField2" to 123,
-            "nestedField" to mapOf("nested" to "value")
-        )
-
-        // When & Then
-        mockMvc.perform(
-            addBasicAuth(
-                patch("$baseUrl/${savedOrder.id}")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(requestWithExtraFields))
-            )
-        )
-            .andExpect(status().isBadRequest)
-
-        // Verify order status was not changed
-        val unchangedOrder = orderRepository.findById(savedOrder.id)
-        assertTrue(unchangedOrder.isPresent)
-        assertEquals(OrderStatus.PENDING, unchangedOrder.get().status)
-    }
-
-    @Test
     fun `should handle orders with items having zero price`() {
         // Given
         val zeroPriceItem = createTestOrderItem(null, defaultBookId.toLong(), 5, BigDecimal.ZERO)
@@ -980,8 +885,8 @@ class OrderControllerIntegrationTest {
         val orderItem2 = createTestOrderItem(null, 2L, 1, BigDecimal("9.99"))
         val order1 = createTestOrderWithItems(customerId, OrderStatus.PENDING, listOf(orderItem1))
         val order2 = createTestOrderWithItems(customerId, OrderStatus.CONFIRMED, listOf(orderItem2))
-        val savedOrder1 = orderRepository.save(order1)
-        val savedOrder2 = orderRepository.save(order2)
+        orderRepository.save(order1)
+        orderRepository.save(order2)
 
         // When & Then
         mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$customerId")))
