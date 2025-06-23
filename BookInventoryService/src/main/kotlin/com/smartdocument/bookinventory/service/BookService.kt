@@ -257,4 +257,25 @@ class BookService(private val bookRepository: BookRepository) {
         bookRepository.save(book)
         logger.info("Successfully decremented inventory for book id: {}: {} -> {}", id, oldQuantity, book.quantity)
     }
+
+    /**
+     * Increments the inventory quantity for a specific book by a given amount.
+     *
+     * @param id the unique identifier of the book
+     * @param amount the quantity to increment
+     * @throws BookInventoryServiceException if the book is not found or amount is negative
+     */
+    @Transactional
+    fun incrementBookQuantity(id: Long, amount: Int) {
+        logger.info("Incrementing inventory for book id: {} by amount: {}", id, amount)
+        val book = getBookById(id)
+        if (amount < 1) {
+            logger.error("Invalid increment amount: {} for book id: {}", amount, id)
+            throw BookInventoryServiceException(BookInventoryServiceException.Operation.NEGATIVE_QUANTITY)
+        }
+        val oldQuantity = book.quantity
+        book.quantity += amount
+        bookRepository.save(book)
+        logger.info("Successfully incremented inventory for book id: {}: {} -> {}", id, oldQuantity, book.quantity)
+    }
 }

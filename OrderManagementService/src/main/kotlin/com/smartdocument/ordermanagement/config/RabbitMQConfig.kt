@@ -16,6 +16,8 @@ class RabbitMQConfig {
         const val ORDER_EXCHANGE = "order.exchange"
         const val ORDER_PLACED_QUEUE = "order.placed.queue"
         const val ORDER_PLACED_ROUTING_KEY = "order.placed"
+        const val ORDER_CANCELLED_QUEUE = "order.cancelled.queue"
+        const val ORDER_CANCELLED_ROUTING_KEY = "order.cancelled"
     }
 
     @Bean
@@ -27,6 +29,13 @@ class RabbitMQConfig {
     @Bean
     fun orderPlacedBinding(orderPlacedQueue: Queue, orderExchange: TopicExchange): Binding =
         BindingBuilder.bind(orderPlacedQueue).to(orderExchange).with(ORDER_PLACED_ROUTING_KEY)
+
+    @Bean
+    fun orderCancelledQueue(): Queue = Queue(ORDER_CANCELLED_QUEUE, true)
+
+    @Bean
+    fun orderCancelledBinding(orderCancelledQueue: Queue, orderExchange: TopicExchange): Binding =
+        BindingBuilder.bind(orderCancelledQueue).to(orderExchange).with(ORDER_CANCELLED_ROUTING_KEY)
 
     @Bean
     fun jackson2JsonMessageConverter(): Jackson2JsonMessageConverter = Jackson2JsonMessageConverter()

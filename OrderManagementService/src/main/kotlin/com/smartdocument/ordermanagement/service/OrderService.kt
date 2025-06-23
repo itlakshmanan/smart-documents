@@ -12,6 +12,7 @@ import java.time.LocalDateTime
 import com.smartdocument.ordermanagement.event.OrderPlacedEvent
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import com.smartdocument.ordermanagement.config.RabbitMQConfig
+import com.smartdocument.ordermanagement.event.OrderCancelledEvent
 
 /**
  * Service class responsible for managing order operations in the Order Management Service.
@@ -187,6 +188,11 @@ class OrderService(
         val order = getOrderById(id)
         val oldStatus = order.status
 
+        // If transitioning to CANCELLED from a non-cancelled state, use cancelOrder for event publishing
+        if (status == OrderStatus.CANCELLED && oldStatus != OrderStatus.CANCELLED) {
+            return cancelOrder(id)
+        }
+
         // Enforce valid status transitions
         val valid = when (oldStatus) {
             OrderStatus.PENDING -> status == OrderStatus.CONFIRMED || status == OrderStatus.CANCELLED
@@ -237,6 +243,7 @@ class OrderService(
             logger.info("Order is already cancelled: {}, updating timestamp and saving", id)
             order.updatedAt = LocalDateTime.now()
             val savedOrder = orderRepository.save(order)
+            publishOrderCancelledEvent(savedOrder)
             return savedOrder
         }
 
@@ -245,6 +252,34 @@ class OrderService(
 
         val cancelledOrder = orderRepository.save(order)
         logger.info("Successfully cancelled order: {} for customer: {}", id, order.customerId)
+        publishOrderCancelledEvent(cancelledOrder)
         return cancelledOrder
+    }
+
+    /**
+     * Publishes an OrderCancelledEvent to RabbitMQ after an order is cancelled.
+     *
+     * This event notifies downstream services (such as BookInventoryService) that an order has been cancelled
+     * and inventory should be restored accordingly. The event contains the order ID and a list of items (bookId, quantity).
+     *
+     * @param order The order for which the event should be published. Must be a persisted order with items.
+     */
+    private fun publishOrderCancelledEvent(order: Order) {
+        val event = OrderCancelledEvent(
+            orderId = order.id.toString(),
+            items = order.orderItems.map { item ->
+                OrderCancelledEvent.Item(
+                    bookId = item.bookId.toString(),
+                    quantity = item.quantity
+                )
+            }
+        )
+        logger.info("[OrderCancelledEvent] Publishing event: orderId={}, items={}", event.orderId, event.items)
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.ORDER_EXCHANGE,
+            RabbitMQConfig.ORDER_CANCELLED_ROUTING_KEY,
+            event
+        )
+        logger.info("Published OrderCancelledEvent for order: {}", order.id)
     }
 }
