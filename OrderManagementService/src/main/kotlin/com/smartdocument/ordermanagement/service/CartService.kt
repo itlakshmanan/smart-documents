@@ -306,10 +306,6 @@ class CartService(
         val order = createOrderFromCart(cart)
         logger.info("Order created successfully - orderId: {}, customer: {}", order.id, customerId)
 
-        // Update book quantities after successful order creation
-        logger.debug("Updating book quantities in inventory")
-        updateBookQuantities(cart)
-
         // Process payment
         logger.debug("Processing payment for order: {}", order.id)
         try {
@@ -319,19 +315,10 @@ class CartService(
             // Update order status to CONFIRMED after successful payment
             orderService.updateOrderStatus(order.id, OrderStatus.CONFIRMED)
             logger.info("Order status updated to CONFIRMED - orderId: {}", order.id)
-        } catch (e: OrderManagementServiceException) {
-            logger.error("Payment failed for order: {} - {}", order.id, e.message)
-            // If payment fails, restore book quantities and cancel order
-            restoreBookQuantities(cart)
-            orderService.updateOrderStatus(order.id, OrderStatus.CANCELLED)
-            logger.info("Order cancelled and inventory restored - orderId: {}", order.id)
-            throw OrderManagementServiceException(OrderManagementServiceException.Operation.PAYMENT_FAILED, e)
         } catch (e: Exception) {
-            logger.error("Unexpected error during payment processing for order: {}", order.id, e)
-            // Handle any other unexpected errors
-            restoreBookQuantities(cart)
+            logger.error("Payment failed for order: {} - {}", order.id, e.message)
             orderService.updateOrderStatus(order.id, OrderStatus.CANCELLED)
-            logger.info("Order cancelled and inventory restored due to unexpected error - orderId: {}", order.id)
+            logger.info("Order cancelled - orderId: {}", order.id)
             throw OrderManagementServiceException(OrderManagementServiceException.Operation.PAYMENT_FAILED, e)
         }
 
@@ -373,56 +360,6 @@ class CartService(
         // Update cart total after price changes
         updateCartTotal(cart)
         logger.debug("Cart total updated to: {}", cart.totalAmount)
-    }
-
-    private fun updateBookQuantities(cart: Cart) {
-        logger.debug("Updating book quantities for {} items", cart.cartItems.size)
-
-        cart.cartItems.forEach { cartItem ->
-            val book = bookClient.getBookById(cartItem.bookId)
-                ?: throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVALID_CART_ITEM)
-
-            val newQuantity = book.quantity - cartItem.quantity
-            logger.debug("Updating book: {} quantity from {} to {}", cartItem.bookId, book.quantity, newQuantity)
-
-            val success = bookClient.updateBookQuantity(cartItem.bookId, newQuantity)
-
-            if (!success) {
-                logger.error("Failed to update book quantity - bookId: {}, requested quantity: {}",
-                            cartItem.bookId, newQuantity)
-                throw OrderManagementServiceException(OrderManagementServiceException.Operation.INVENTORY_RESERVATION_FAILED)
-            }
-
-            logger.debug("Successfully updated book quantity - bookId: {}, new quantity: {}",
-                        cartItem.bookId, newQuantity)
-        }
-    }
-
-    private fun restoreBookQuantities(cart: Cart) {
-        logger.warn("Restoring book quantities for {} items after payment failure", cart.cartItems.size)
-
-        cart.cartItems.forEach { cartItem ->
-            try {
-                val book = bookClient.getBookById(cartItem.bookId)
-                if (book != null) {
-                    val restoredQuantity = book.quantity + cartItem.quantity
-                    logger.debug("Restoring book: {} quantity from {} to {}",
-                                cartItem.bookId, book.quantity, restoredQuantity)
-
-                    val success = bookClient.updateBookQuantity(cartItem.bookId, restoredQuantity)
-                    if (!success) {
-                        logger.error("Failed to restore quantity for book {} - API call returned false", cartItem.bookId)
-                    } else {
-                        logger.debug("Successfully restored quantity for book: {}", cartItem.bookId)
-                    }
-                } else {
-                    logger.error("Failed to restore quantity for book {} - book not found", cartItem.bookId)
-                }
-            } catch (e: Exception) {
-                logger.error("Failed to restore quantity for book {}", cartItem.bookId, e)
-                // Consider alerting/monitoring for this critical error
-            }
-        }
     }
 
     private fun createOrderFromCart(cart: Cart): Order {

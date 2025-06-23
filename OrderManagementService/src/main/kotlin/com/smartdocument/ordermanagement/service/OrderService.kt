@@ -9,6 +9,9 @@ import org.springframework.transaction.annotation.Transactional
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
+import com.smartdocument.ordermanagement.event.OrderPlacedEvent
+import org.springframework.amqp.rabbit.core.RabbitTemplate
+import com.smartdocument.ordermanagement.config.RabbitMQConfig
 
 /**
  * Service class responsible for managing order operations in the Order Management Service.
@@ -27,11 +30,13 @@ import java.time.LocalDateTime
  *
  * @property orderRepository Repository for order data persistence
  * @property bookClient Client for communicating with BookInventoryService
+ * @property rabbitTemplate RabbitTemplate for publishing events
  */
 @Service
 class OrderService(
     private val orderRepository: OrderRepository,
-    private val bookClient: BookClient
+    private val bookClient: BookClient,
+    private val rabbitTemplate: RabbitTemplate
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(OrderService::class.java)
@@ -131,7 +136,34 @@ class OrderService(
         val savedOrder = orderRepository.save(order)
         logger.info("Successfully created order: {} for customer: {} with status: {}",
                    savedOrder.id, savedOrder.customerId, savedOrder.status)
+        publishOrderPlacedEvent(savedOrder)
         return savedOrder
+    }
+
+    /**
+     * Publishes an OrderPlacedEvent to RabbitMQ after a new order is created.
+     *
+     * This event notifies downstream services (such as BookInventoryService) that an order has been placed
+     * and inventory should be updated accordingly. The event contains the order ID and a list of items (bookId, quantity).
+     *
+     * @param order The order for which the event should be published. Must be a persisted order with items.
+     */
+    private fun publishOrderPlacedEvent(order: Order) {
+        val event = OrderPlacedEvent(
+            orderId = order.id.toString(),
+            items = order.orderItems.map { item ->
+                OrderPlacedEvent.Item(
+                    bookId = item.bookId.toString(),
+                    quantity = item.quantity
+                )
+            }
+        )
+        rabbitTemplate.convertAndSend(
+            RabbitMQConfig.ORDER_EXCHANGE,
+            RabbitMQConfig.ORDER_PLACED_ROUTING_KEY,
+            event
+        )
+        logger.info("Published OrderPlacedEvent for order: {}", order.id)
     }
 
     /**

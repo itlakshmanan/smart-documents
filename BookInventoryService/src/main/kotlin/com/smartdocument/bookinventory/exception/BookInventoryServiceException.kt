@@ -41,6 +41,9 @@ class BookInventoryServiceException(
         ISBN_ALREADY_EXISTS(HttpStatus.CONFLICT, "ISBN already exists"),
 
         /** Attempted to set a negative quantity for book inventory */
-        NEGATIVE_QUANTITY(HttpStatus.BAD_REQUEST, "Quantity must be zero or positive")
+        NEGATIVE_QUANTITY(HttpStatus.BAD_REQUEST, "Quantity must be zero or positive"),
+
+        /** Not enough stock to fulfill the request */
+        INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "Insufficient stock for order")
     }
 }

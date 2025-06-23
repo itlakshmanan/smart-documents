@@ -232,4 +232,29 @@ class BookService(private val bookRepository: BookRepository) {
             cb.equal(cb.literal(1), cb.literal(0))
         }
     }
+
+    /**
+     * Decrements the inventory quantity for a specific book by a given amount.
+     *
+     * @param id the unique identifier of the book
+     * @param amount the quantity to decrement
+     * @throws BookInventoryServiceException if the book is not found or not enough stock
+     */
+    @Transactional
+    fun decrementBookQuantity(id: Long, amount: Int) {
+        logger.info("Decrementing inventory for book id: {} by amount: {}", id, amount)
+        val book = getBookById(id)
+        if (amount < 1) {
+            logger.error("Invalid decrement amount: {} for book id: {}", amount, id)
+            throw BookInventoryServiceException(BookInventoryServiceException.Operation.NEGATIVE_QUANTITY)
+        }
+        if (book.quantity < amount) {
+            logger.error("Not enough stock to decrement for book id: {}. Current: {}, Requested: {}", id, book.quantity, amount)
+            throw BookInventoryServiceException(BookInventoryServiceException.Operation.INSUFFICIENT_STOCK)
+        }
+        val oldQuantity = book.quantity
+        book.quantity -= amount
+        bookRepository.save(book)
+        logger.info("Successfully decremented inventory for book id: {}: {} -> {}", id, oldQuantity, book.quantity)
+    }
 }

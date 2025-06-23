@@ -60,6 +60,18 @@ services:
       - smart-documents-network
     command: gradle bootRun
 
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - smart-documents-network
+
 networks:
   smart-documents-network:
     driver: bridge
