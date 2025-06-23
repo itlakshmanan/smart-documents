@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import io.swagger.v3.oas.annotations.Operation
 
 /**
  * REST controller for managing customer shopping carts.
@@ -67,6 +68,10 @@ class CartController(
      * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if customer ID is invalid
      */
     @GetMapping("/{customerId}")
+    @Operation(
+        summary = "Get cart by customer ID",
+        description = "Retrieves the current cart for a specific customer, including all items, quantities, prices, and totals. Returns an empty cart if none exists."
+    )
     fun getCart(@PathVariable customerId: String): ResponseEntity<CartResponseDto> {
         logger.info("Getting cart for customer: {}", customerId)
         val cart = cartService.getCartByCustomerId(customerId)
@@ -87,6 +92,10 @@ class CartController(
      * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if book doesn't exist or quantity is invalid
      */
     @PostMapping("/{customerId}/items")
+    @Operation(
+        summary = "Add item to cart",
+        description = "Adds a new item to the customer's cart. Validates the book exists and adds the specified quantity. Creates the cart if it doesn't exist."
+    )
     fun addItemToCart(
         @PathVariable customerId: String,
         @Valid @RequestBody cartItemRequest: CartItemRequestDto
@@ -112,6 +121,10 @@ class CartController(
      * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if book is not in cart or quantity is invalid
      */
     @PatchMapping("/{customerId}/items/{bookId}")
+    @Operation(
+        summary = "Update item quantity in cart",
+        description = "Updates the quantity of a specific item in the customer's cart. Removes the item if quantity is 0."
+    )
     fun updateItemQuantity(
         @PathVariable customerId: String,
         @PathVariable bookId: Long,
@@ -136,6 +149,10 @@ class CartController(
      * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if book is not in cart
      */
     @DeleteMapping("/{customerId}/items/{bookId}")
+    @Operation(
+        summary = "Remove item from cart",
+        description = "Removes a specific item from the customer's cart and recalculates the total."
+    )
     fun removeItemFromCart(
         @PathVariable customerId: String,
         @PathVariable bookId: Long
@@ -157,6 +174,10 @@ class CartController(
      * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if customer ID is invalid
      */
     @DeleteMapping("/{customerId}")
+    @Operation(
+        summary = "Clear cart",
+        description = "Clears all items from the customer's cart, resetting it to an empty state."
+    )
     fun clearCart(@PathVariable customerId: String): ResponseEntity<CartResponseDto> {
         logger.info("Clearing cart for customer: {}", customerId)
         val cart = cartService.clearCart(customerId)
@@ -183,6 +204,10 @@ class CartController(
      * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if cart is empty or inventory is insufficient
      */
     @PostMapping("/{customerId}/checkout")
+    @Operation(
+        summary = "Checkout cart",
+        description = "Processes the checkout of the customer's cart, validates inventory, creates an order, and clears the cart."
+    )
     fun checkoutCart(@PathVariable customerId: String): ResponseEntity<OrderResponseDto> {
         logger.info("Checking out cart for customer: {}", customerId)
         val order = cartService.checkoutCart(customerId)

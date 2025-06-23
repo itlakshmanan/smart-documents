@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import io.swagger.v3.oas.annotations.Operation
 
 /**
  * REST controller for managing book inventory operations.
@@ -39,6 +40,10 @@ class BookController(
      * @return a list of BookResponseDto objects representing all books
      */
     @GetMapping
+    @Operation(
+        summary = "Get all books",
+        description = "Retrieves a list of all books available in the inventory. Returns a list of BookResponseDto objects."
+    )
     fun getAllBooks(): ResponseEntity<List<BookResponseDto>> {
         logger.info("Fetching all books from inventory")
         val books = bookService.getAllBooks().map { bookMapper.toResponseDto(it) }
@@ -52,6 +57,10 @@ class BookController(
      * @return the BookResponseDto for the requested book
      */
     @GetMapping("/{id}")
+    @Operation(
+        summary = "Get book by ID",
+        description = "Retrieves a specific book by its unique identifier. Returns the BookResponseDto for the requested book."
+    )
     fun getBookById(@PathVariable id: Long): ResponseEntity<BookResponseDto> {
         logger.info("Fetching book with id: {}", id)
         val book = bookService.getBookById(id)
@@ -64,6 +73,10 @@ class BookController(
      * @return a list of genre names
      */
     @GetMapping("/genres")
+    @Operation(
+        summary = "Get all genres",
+        description = "Retrieves all unique genres from the books in the inventory. Returns a list of genre names."
+    )
     fun getAllGenres(): ResponseEntity<List<String>> {
         logger.info("Fetching all available genres")
         val genres = bookService.getAllGenres()
@@ -77,6 +90,10 @@ class BookController(
      * @return the created BookResponseDto
      */
     @PostMapping
+    @Operation(
+        summary = "Create a new book",
+        description = "Creates a new book in the inventory using the provided BookRequestDto. Returns the created BookResponseDto."
+    )
     fun createBook(@Valid @RequestBody bookRequestDto: BookRequestDto): ResponseEntity<BookResponseDto> {
         logger.info("Creating new book: {} (ISBN: {})", bookRequestDto.title, bookRequestDto.isbn)
         val book = bookService.createBook(bookMapper.toEntity(bookRequestDto))
@@ -91,6 +108,10 @@ class BookController(
      * @return the updated BookResponseDto
      */
     @PutMapping("/{id}")
+    @Operation(
+        summary = "Update a book",
+        description = "Updates an existing book's information by its unique identifier. Accepts a BookRequestDto and returns the updated BookResponseDto."
+    )
     fun updateBook(
         @PathVariable id: Long,
         @Valid @RequestBody bookRequestDto: BookRequestDto
@@ -108,6 +129,10 @@ class BookController(
      * @return the updated BookResponseDto
      */
     @PatchMapping("/{id}/inventory")
+    @Operation(
+        summary = "Update book inventory",
+        description = "Updates the inventory quantity for a specific book by its unique identifier. Accepts a quantity parameter and returns the updated BookResponseDto."
+    )
     fun updateInventory(
         @PathVariable id: Long,
         @RequestParam quantity: Int
@@ -123,6 +148,10 @@ class BookController(
      * @param id the unique identifier of the book to delete
      */
     @DeleteMapping("/{id}")
+    @Operation(
+        summary = "Delete a book",
+        description = "Deletes a book from the inventory by its unique identifier. Returns no content if successful."
+    )
     fun deleteBook(@PathVariable id: Long): ResponseEntity<Unit> {
         logger.info("Attempting to delete book with id: {}", id)
         bookService.deleteBook(id)
@@ -143,6 +172,10 @@ class BookController(
      * @return a page of BookResponseDto objects matching the filters
      */
     @GetMapping("/advanced-search")
+    @Operation(
+        summary = "Advanced book search",
+        description = "Performs an advanced search for books with multiple optional filters (title, author, genre, ISBN, language, publisher, published date) and supports pagination and sorting. Returns a page of BookResponseDto objects matching the filters."
+    )
     fun searchBooksAdvanced(
         @RequestParam(required = false) title: String?,
         @RequestParam(required = false) author: String?,

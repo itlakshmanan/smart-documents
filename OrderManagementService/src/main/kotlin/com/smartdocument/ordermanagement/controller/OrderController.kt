@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import com.smartdocument.ordermanagement.dto.UpdateOrderStatusRequestDto
+import io.swagger.v3.oas.annotations.Operation
 
 /**
  * REST controller for managing customer orders.
@@ -60,6 +61,10 @@ class OrderController(
      * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if order ID is invalid or order not found
      */
     @GetMapping("/{orderId}")
+    @Operation(
+        summary = "Get order by ID",
+        description = "Retrieves order details by order ID, including all items, customer details, status, timestamps, and totals."
+    )
     fun getOrder(@PathVariable orderId: String): ResponseEntity<OrderResponseDto> {
         logger.info("Getting order: {}", orderId)
         val order = orderService.getOrderById(orderId.toLong())
@@ -85,6 +90,10 @@ class OrderController(
      * @return List of OrderResponseDto objects containing all customer orders
      */
     @GetMapping("/customer/{customerId}")
+    @Operation(
+        summary = "Get all orders for customer",
+        description = "Retrieves all orders for a specific customer, including order details, status, timestamps, and totals. Useful for displaying order history."
+    )
     fun getOrdersByCustomerId(@PathVariable customerId: String): ResponseEntity<List<OrderResponseDto>> {
         logger.info("Getting all orders for customer: {}", customerId)
         val orders = orderService.getOrdersByCustomerId(customerId)
@@ -113,6 +122,10 @@ class OrderController(
      * @throws com.smartdocument.ordermanagement.exception.OrderManagementServiceException if order ID is invalid, order not found, invalid status transition, or request data is invalid
      */
     @PatchMapping("/{orderId}")
+    @Operation(
+        summary = "Update order status",
+        description = "Updates the status of an existing order. Validates status transitions and returns updated order details."
+    )
     fun updateOrderStatus(
         @PathVariable orderId: String,
         @RequestBody request: UpdateOrderStatusRequestDto
