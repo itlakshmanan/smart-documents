@@ -972,6 +972,180 @@ class OrderControllerIntegrationTest {
         assertEquals(OrderStatus.PENDING, unchangedOrder.get().status)
     }
 
+    @Test
+    fun `should get all orders for a customer successfully`() {
+        // Given
+        val customerId = "customer123"
+        val orderItem1 = createTestOrderItem(null, 1L, 2, BigDecimal("19.99"))
+        val orderItem2 = createTestOrderItem(null, 2L, 1, BigDecimal("9.99"))
+        val order1 = createTestOrderWithItems(customerId, OrderStatus.PENDING, listOf(orderItem1))
+        val order2 = createTestOrderWithItems(customerId, OrderStatus.CONFIRMED, listOf(orderItem2))
+        val savedOrder1 = orderRepository.save(order1)
+        val savedOrder2 = orderRepository.save(order2)
+
+        // When & Then
+        mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$customerId")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$", Matchers.hasSize<Any>(2)))
+            .andExpect(jsonPath("$[0].customerId").value(customerId))
+            .andExpect(jsonPath("$[1].customerId").value(customerId))
+            .andExpect(jsonPath("$[0].orderItems").isArray)
+            .andExpect(jsonPath("$[1].orderItems").isArray)
+            .andExpect(jsonPath("$[0].orderItems[0].bookId").value(1L))
+            .andExpect(jsonPath("$[1].orderItems[0].bookId").value(2L))
+    }
+
+    @Test
+    fun `should return empty list when customer has no orders`() {
+        // Given
+        val customerId = "noorders"
+
+        // When & Then
+        mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$customerId")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$").isArray)
+            .andExpect(jsonPath("$", Matchers.hasSize<Any>(0)))
+    }
+
+    @Test
+    fun `should handle special characters in customer ID for getOrdersByCustomerId`() {
+        // Given
+        val specialCustomerId = "customer-123_test@example.com"
+        val orderItem = createTestOrderItem(null, 3L, 1, BigDecimal("29.99"))
+        val order = createTestOrderWithItems(specialCustomerId, OrderStatus.PENDING, listOf(orderItem))
+        orderRepository.save(order)
+
+        // When & Then
+        mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$specialCustomerId")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$", Matchers.hasSize<Any>(1)))
+            .andExpect(jsonPath("$[0].customerId").value(specialCustomerId))
+    }
+
+    @Test
+    fun `should handle very long customer ID for getOrdersByCustomerId`() {
+        // Given
+        val longCustomerId = "customer_" + "a".repeat(200) + "@verylongdomain.com"
+        val orderItem = createTestOrderItem(null, 4L, 1, BigDecimal("39.99"))
+        val order = createTestOrderWithItems(longCustomerId, OrderStatus.PENDING, listOf(orderItem))
+        orderRepository.save(order)
+
+        // When & Then
+        mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$longCustomerId")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$", Matchers.hasSize<Any>(1)))
+            .andExpect(jsonPath("$[0].customerId").value(longCustomerId))
+    }
+
+    @Test
+    fun `should handle Unicode characters in customer ID for getOrdersByCustomerId`() {
+        // Given
+        val unicodeCustomerId = "customer_123_test@example.com"
+        val orderItem = createTestOrderItem(null, 5L, 1, BigDecimal("49.99"))
+        val order = createTestOrderWithItems(unicodeCustomerId, OrderStatus.PENDING, listOf(orderItem))
+        orderRepository.save(order)
+
+        // When & Then
+        mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$unicodeCustomerId")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$", Matchers.hasSize<Any>(1)))
+            .andExpect(jsonPath("$[0].customerId").value(unicodeCustomerId))
+    }
+
+    @Test
+    fun `should return all order statuses for a customer`() {
+        // Given
+        val customerId = "statuscases"
+        val statuses = listOf(OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.CANCELLED)
+        statuses.forEachIndexed { i, status ->
+            val orderItem = createTestOrderItem(null, (10 + i).toLong(), 1, BigDecimal("10.00"))
+            val order = createTestOrderWithItems(customerId, status, listOf(orderItem))
+            orderRepository.save(order)
+        }
+        // When & Then
+        mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$customerId")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$", Matchers.hasSize<Any>(5)))
+            .andExpect(jsonPath("$[*].status", Matchers.containsInAnyOrder(*statuses.map { it.name }.toTypedArray())))
+    }
+
+    @Test
+    fun `should handle customer with a large number of orders`() {
+        // Given
+        val customerId = "bulkuser"
+        val orderCount = 100
+        (1..orderCount).forEach { i ->
+            val orderItem = createTestOrderItem(null, i.toLong(), 1, BigDecimal("1.00"))
+            val order = createTestOrderWithItems(customerId, OrderStatus.PENDING, listOf(orderItem))
+            orderRepository.save(order)
+        }
+        // When & Then
+        mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$customerId")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$", Matchers.hasSize<Any>(orderCount)))
+    }
+
+    @Test
+    fun `should return orders with multiple items for a customer`() {
+        // Given
+        val customerId = "multiitem"
+        val orderItem1 = createTestOrderItem(null, 1L, 2, BigDecimal("5.00"))
+        val orderItem2 = createTestOrderItem(null, 2L, 3, BigDecimal("7.00"))
+        val order = createTestOrderWithItems(customerId, OrderStatus.PENDING, listOf(orderItem1, orderItem2))
+        orderRepository.save(order)
+        // When & Then
+        mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$customerId")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$", Matchers.hasSize<Any>(1)))
+            .andExpect(jsonPath("$[0].orderItems", Matchers.hasSize<Any>(2)))
+            .andExpect(jsonPath("$[0].orderItems[0].quantity").value(2))
+            .andExpect(jsonPath("$[0].orderItems[1].quantity").value(3))
+    }
+
+    @Test
+    fun `should return orders with edge-case total amounts`() {
+        // Given
+        val customerId = "edgeamounts"
+        val zeroOrder = createTestOrderWithItems(customerId, OrderStatus.PENDING, listOf(createTestOrderItem(null, 1L, 0, BigDecimal.ZERO)))
+        zeroOrder.totalAmount = BigDecimal.ZERO
+        val negativeOrder = createTestOrderWithItems(customerId, OrderStatus.PENDING, listOf(createTestOrderItem(null, 2L, 1, BigDecimal("-10.00"))))
+        negativeOrder.totalAmount = BigDecimal("-10.00")
+        val largeOrder = createTestOrderWithItems(customerId, OrderStatus.PENDING, listOf(createTestOrderItem(null, 3L, 1, BigDecimal("1000000.00"))))
+        largeOrder.totalAmount = BigDecimal("1000000.00")
+        val decimalOrder = createTestOrderWithItems(customerId, OrderStatus.PENDING, listOf(createTestOrderItem(null, 4L, 1, BigDecimal("0.99"))))
+        decimalOrder.totalAmount = BigDecimal("0.99")
+        orderRepository.saveAll(listOf(zeroOrder, negativeOrder, largeOrder, decimalOrder))
+        // When & Then
+        mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$customerId")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$", Matchers.hasSize<Any>(4)))
+            .andExpect(jsonPath("$[?(@.totalAmount==0.0)]").exists())
+            .andExpect(jsonPath("$[?(@.totalAmount==-10.0)]").exists())
+            .andExpect(jsonPath("$[?(@.totalAmount==1000000.0)]").exists())
+            .andExpect(jsonPath("$[?(@.totalAmount==0.99)]").exists())
+    }
+
+    @Test
+    fun `should return orders with edge-case item values`() {
+        // Given
+        val customerId = "edgeitems"
+        val zeroQtyItem = createTestOrderItem(null, 1L, 0, BigDecimal("10.00"))
+        val negativeQtyItem = createTestOrderItem(null, 2L, -5, BigDecimal("10.00"))
+        val largeQtyItem = createTestOrderItem(null, 3L, Int.MAX_VALUE, BigDecimal("1.00"))
+        val negativePriceItem = createTestOrderItem(null, 4L, 1, BigDecimal("-20.00"))
+        val order = createTestOrderWithItems(customerId, OrderStatus.PENDING, listOf(zeroQtyItem, negativeQtyItem, largeQtyItem, negativePriceItem))
+        orderRepository.save(order)
+        // When & Then
+        mockMvc.perform(addBasicAuth(get("$baseUrl/customer/$customerId")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$", Matchers.hasSize<Any>(1)))
+            .andExpect(jsonPath("$[0].orderItems", Matchers.hasSize<Any>(4)))
+            .andExpect(jsonPath("$[0].orderItems[0].quantity").value(0))
+            .andExpect(jsonPath("$[0].orderItems[1].quantity").value(-5))
+            .andExpect(jsonPath("$[0].orderItems[2].quantity").value(Int.MAX_VALUE))
+            .andExpect(jsonPath("$[0].orderItems[3].price").value(-20.0))
+    }
+
     // Helper method to create test orders
     private fun createTestOrder(customerId: String, status: OrderStatus): Order {
         return Order(

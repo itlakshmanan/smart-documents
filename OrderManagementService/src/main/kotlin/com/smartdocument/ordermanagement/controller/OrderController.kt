@@ -67,6 +67,32 @@ class OrderController(
     }
 
     /**
+     * Retrieves all orders for a specific customer.
+     *
+     * Returns a list of all orders associated with the specified customer ID,
+     * including order details, status, timestamps, and total amounts. Orders
+     * are returned in the order they were created (typically newest first).
+     * This endpoint is useful for displaying a customer's complete order history.
+     *
+     * The response includes:
+     * - All orders for the customer regardless of status
+     * - Complete order details with historical pricing information
+     * - Order items and their associated data
+     * - Creation and update timestamps
+     *
+     * @param customerId Unique identifier for the customer
+     * @return List of OrderResponseDto objects containing all customer orders
+     */
+    @GetMapping("/customer/{customerId}")
+    fun getOrdersByCustomerId(@PathVariable customerId: String): ResponseEntity<List<OrderResponseDto>> {
+        logger.info("Getting all orders for customer: {}", customerId)
+        val orders = orderService.getOrdersByCustomerId(customerId)
+        val orderResponses = orderMapper.toOrderResponseDtoList(orders)
+        logger.debug("Found {} orders for customer: {}", orderResponses.size, customerId)
+        return ResponseEntity.ok(orderResponses)
+    }
+
+    /**
      * Updates the status of an existing order.
      *
      * Allows updating the order status to reflect the current state

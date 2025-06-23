@@ -302,6 +302,185 @@ class OrderServiceTest {
         verify { orderRepository.findByCustomerId(customerId) }
     }
 
+    @Test
+    fun `getOrdersByCustomerId should return empty list for customer with no orders`() {
+        // Given
+        val customerId = "newcustomer"
+        every { orderRepository.findByCustomerId(customerId) } returns emptyList()
+
+        // When
+        val result = orderService.getOrdersByCustomerId(customerId)
+
+        // Then
+        assertTrue(result.isEmpty())
+        verify { orderRepository.findByCustomerId(customerId) }
+    }
+
+    @Test
+    fun `getOrdersByCustomerId should handle customer with single order`() {
+        // Given
+        val customerId = "singleorder"
+        val order = createTestOrder(customerId, listOf(), 1L, OrderStatus.CONFIRMED)
+        every { orderRepository.findByCustomerId(customerId) } returns listOf(order)
+
+        // When
+        val result = orderService.getOrdersByCustomerId(customerId)
+
+        // Then
+        assertEquals(1, result.size)
+        assertEquals(customerId, result.first().customerId)
+        assertEquals(OrderStatus.CONFIRMED, result.first().status)
+        verify { orderRepository.findByCustomerId(customerId) }
+    }
+
+    @Test
+    fun `getOrdersByCustomerId should handle customer with orders in different statuses`() {
+        // Given
+        val customerId = "mixedstatus"
+        val pendingOrder = createTestOrder(customerId, listOf(), 1L, OrderStatus.PENDING)
+        val confirmedOrder = createTestOrder(customerId, listOf(), 2L, OrderStatus.CONFIRMED)
+        val shippedOrder = createTestOrder(customerId, listOf(), 3L, OrderStatus.SHIPPED)
+        val deliveredOrder = createTestOrder(customerId, listOf(), 4L, OrderStatus.DELIVERED)
+        val cancelledOrder = createTestOrder(customerId, listOf(), 5L, OrderStatus.CANCELLED)
+
+        val orders = listOf(pendingOrder, confirmedOrder, shippedOrder, deliveredOrder, cancelledOrder)
+        every { orderRepository.findByCustomerId(customerId) } returns orders
+
+        // When
+        val result = orderService.getOrdersByCustomerId(customerId)
+
+        // Then
+        assertEquals(5, result.size)
+        result.forEach { assertEquals(customerId, it.customerId) }
+        val statuses = result.map { it.status }.toSet()
+        assertEquals(setOf(OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.CANCELLED), statuses)
+        verify { orderRepository.findByCustomerId(customerId) }
+    }
+
+    @Test
+    fun `getOrdersByCustomerId should handle customer with special characters in ID`() {
+        // Given
+        val customerId = "customer-123_test@example.com"
+        val order = createTestOrder(customerId, listOf(), 1L)
+        every { orderRepository.findByCustomerId(customerId) } returns listOf(order)
+
+        // When
+        val result = orderService.getOrdersByCustomerId(customerId)
+
+        // Then
+        assertEquals(1, result.size)
+        assertEquals(customerId, result.first().customerId)
+        verify { orderRepository.findByCustomerId(customerId) }
+    }
+
+    @Test
+    fun `getOrdersByCustomerId should handle customer with very long ID`() {
+        // Given
+        val customerId = "customer_" + "a".repeat(200) + "@verylongdomain.com"
+        val order = createTestOrder(customerId, listOf(), 1L)
+        every { orderRepository.findByCustomerId(customerId) } returns listOf(order)
+
+        // When
+        val result = orderService.getOrdersByCustomerId(customerId)
+
+        // Then
+        assertEquals(1, result.size)
+        assertEquals(customerId, result.first().customerId)
+        verify { orderRepository.findByCustomerId(customerId) }
+    }
+
+    @Test
+    fun `getOrdersByCustomerId should handle customer with Unicode characters in ID`() {
+        // Given
+        val customerId = "customer_123_test@example.com"
+        val order = createTestOrder(customerId, listOf(), 1L)
+        every { orderRepository.findByCustomerId(customerId) } returns listOf(order)
+
+        // When
+        val result = orderService.getOrdersByCustomerId(customerId)
+
+        // Then
+        assertEquals(1, result.size)
+        assertEquals(customerId, result.first().customerId)
+        verify { orderRepository.findByCustomerId(customerId) }
+    }
+
+    @Test
+    fun `getOrdersByCustomerId should handle customer with empty string ID`() {
+        // Given
+        val customerId = ""
+        every { orderRepository.findByCustomerId(customerId) } returns emptyList()
+
+        // When
+        val result = orderService.getOrdersByCustomerId(customerId)
+
+        // Then
+        assertTrue(result.isEmpty())
+        verify { orderRepository.findByCustomerId(customerId) }
+    }
+
+    @Test
+    fun `getOrdersByCustomerId should handle customer with whitespace-only ID`() {
+        // Given
+        val customerId = "   "
+        every { orderRepository.findByCustomerId(customerId) } returns emptyList()
+
+        // When
+        val result = orderService.getOrdersByCustomerId(customerId)
+
+        // Then
+        assertTrue(result.isEmpty())
+        verify { orderRepository.findByCustomerId(customerId) }
+    }
+
+    @Test
+    fun `getOrdersByCustomerId should handle orders with different total amounts`() {
+        // Given
+        val customerId = "variousamounts"
+        val order1 = createTestOrder(customerId, listOf(), 1L, OrderStatus.PENDING)
+        order1.totalAmount = BigDecimal("19.99")
+        val order2 = createTestOrder(customerId, listOf(), 2L, OrderStatus.CONFIRMED)
+        order2.totalAmount = BigDecimal("0.00")
+        val order3 = createTestOrder(customerId, listOf(), 3L, OrderStatus.SHIPPED)
+        order3.totalAmount = BigDecimal("999999.99")
+
+        val orders = listOf(order1, order2, order3)
+        every { orderRepository.findByCustomerId(customerId) } returns orders
+
+        // When
+        val result = orderService.getOrdersByCustomerId(customerId)
+
+        // Then
+        assertEquals(3, result.size)
+        result.forEach { assertEquals(customerId, it.customerId) }
+        val amounts = result.map { it.totalAmount }.toSet()
+        assertEquals(setOf(BigDecimal("19.99"), BigDecimal("0.00"), BigDecimal("999999.99")), amounts)
+        verify { orderRepository.findByCustomerId(customerId) }
+    }
+
+    @Test
+    fun `getOrdersByCustomerId should handle orders with different creation dates`() {
+        // Given
+        val customerId = "variousdates"
+        val order1 = createTestOrder(customerId, listOf(), 1L)
+        order1.createdAt = LocalDateTime.of(2023, 1, 1, 10, 0, 0)
+        val order2 = createTestOrder(customerId, listOf(), 2L)
+        order2.createdAt = LocalDateTime.of(2023, 12, 31, 23, 59, 59)
+        val order3 = createTestOrder(customerId, listOf(), 3L)
+        order3.createdAt = LocalDateTime.now()
+
+        val orders = listOf(order1, order2, order3)
+        every { orderRepository.findByCustomerId(customerId) } returns orders
+
+        // When
+        val result = orderService.getOrdersByCustomerId(customerId)
+
+        // Then
+        assertEquals(3, result.size)
+        result.forEach { assertEquals(customerId, it.customerId) }
+        verify { orderRepository.findByCustomerId(customerId) }
+    }
+
     // Helper methods
     private fun createTestOrder(
         customerId: String,
